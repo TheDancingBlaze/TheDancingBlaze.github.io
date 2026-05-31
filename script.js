@@ -1,81 +1,48 @@
 /**
- * ==========================================================================
- * АРХИВ 1831 — Интерактивная историческая реконструкция
- * Основной игровой скрипт
- * ==========================================================================
- */
-
+==========================================================================
+АРХИВ 1831 — Интерактивная историческая реконструкция
+Оптимизированная версия: ускорение рендеринга, устранение лагов, пакетные DOM-обновления
+==========================================================================
+*/
 // ==========================================================================
 // 1. КОНФИГУРАЦИЯ И КОНСТАНТЫ
 // ==========================================================================
-
 const CONFIG = {
-    // Начальные значения статов
-    INITIAL_STATS: {
-        epidemy: 30,      // Стартовая эпидемия (уже идёт)
-        reputation: 60,   // Доверие Николая I
-        treasury: 20      // Казна после польской кампании
-    },
-
-    // Настройки карточек (УСКОРЕНО)
+    INITIAL_STATS: { epidemy: 30, reputation: 60, treasury: 20 },
     CARD: {
-        SWIPE_THRESHOLD: 80,       // Было 120 — свайп срабатывает раньше
-        MAX_DRAG_DISTANCE: 150,    // Максимальное смещение при перетаскивании
-        ROTATION_FACTOR: 15,       // Делитель для угла поворота
-        ANIMATION_DURATION: 280,   // Было 400 — карточки летают быстрее
-        RESET_DURATION: 200        // Новая: скорость появления следующей карты
+        SWIPE_THRESHOLD: 120,
+        MAX_DRAG_DISTANCE: 150,
+        ROTATION_FACTOR: 15,
+        ANIMATION_DURATION: 400,
+        CHOICE_APPEAR_THRESHOLD: 20,
+        CHOICE_FULL_OPACITY_AT: 100
     },
-
-    // Настройки автоподгона текста (УСКОРЕНО: шаг 1 вместо 0.5)
-    TEXT_FIT: {
-        CARD_MAX: 22,
-        CARD_MIN: 13,
-        CHOICE_MAX: 13,
-        CHOICE_MIN: 9,
-        STEP: 1                    // Было 0.5 — подбор шрифта в 2 раза быстрее
-    },
-
-    // Настройки скорости UI (НОВОЕ)
-    UI: {
-        SCREEN_FADE: 500,          // Было 800 — переход между экранами
-        TEXT_FADE: 80,             // Было 150 — смена текста карточки
-        NAME_FADE: 40,             // Было 80  — смена имени
-        TYPEWRITER_DELAY: 600      // Было 1200 — старт печатной машинки
-    },
-
-    // Месяцы для таймлайна
+    TEXT_FIT: { CARD_MAX: 22, CARD_MIN: 13, CHOICE_MAX: 13, CHOICE_MIN: 9 },
     MONTHS: {
-        full: [ "Май ",  "Июнь ",  "Июль ",  "Август ",  "Сентябрь ",  "Октябрь ",
-                "Ноябрь ",  "Декабрь ",  "Январь ",  "Февраль ",  "Март ",  "Апрель "],
-        short: [ "МАЙ ",  "ИЮН ",  "ИЮЛ ",  "АВГ ",  "СЕН ",  "ОКТ ",
-                 "НОЯ ",  "ДЕК ",  "ЯНВ ",  "ФЕВ ",  "МАР ",  "АПР "]
+        full: ["Май ", "Июнь ", "Июль ", "Август ", "Сентябрь ", "Октябрь ", "Ноябрь ", "Декабрь ", "Январь ", "Февраль ", "Март ", "Апрель "],
+        short: ["МАЙ ", "ИЮН ", "ИЮЛ ", "АВГ ", "СЕН ", "ОКТ ", "НОЯ ", "ДЕК ", "ЯНВ ", "ФЕВ ", "МАР ", "АПР "]
     },
-
-    // Цитаты для печатной машинки
     QUOTES: [
-         "«Доктор Распайль считал камфору почти универсальной панацеей...» ",
-         "«Телесная сила не предохраняет от болезни — она располагает к ней.» ",
-         "«Цыганку Таню вылечили крапивой и горячим морским пуншем с ромом.» ",
-         "«Они не внимали предостережениям и наелись на ночь сырых огурцов.» ",
-         "«Деятельность нервной системы необходима для противодействия холере.» ",
-         "«В городе в большом употреблении сигаретки из слоновой кости...» ",
-         "«Почти никто не умер из тех, которые не позволяли себе излишеств.» "
+        "«Доктор Распайль считал камфору почти универсальной панацеей...» ",
+        "«Телесная сила не предохраняет от болезни — она располагает к ней.» ",
+        "«Цыганку Таню вылечили крапивой и горячим морским пуншем с ромом.» ",
+        "«Они не внимали предостережениям и наелись на ночь сырых огурцов.» ",
+        "«Деятельность нервной системы необходима для противодействия холере.» ",
+        "«В городе в большом употреблении сигаретки из слоновой кости...» ",
+        "«Почти никто не умер из тех, которые не позволяли себе излишеств.» "
     ],
-
-    // Музыкальные треки
     TRACKS: [
-        { name:  "Заблудший ", url:  "music/Заблудший.mp3 " },
-        { name:  "Мрак ", url:  "music/Мрак.mp3 " },
-        { name:  "Секреты ", url:  "music/Секреты.mp3 " },
-        { name:  "Хватит ", url:  "music/Хватит.mp3 " },
-        { name:  "Lilium ", url:  "music/Lilium(Music_Box).mp3 " }
+        { name: "Заблудший ", url: "music/Заблудший.mp3 " },
+        { name: "Мрак ", url: "music/Мрак.mp3 " },
+        { name: "Секреты ", url: "music/Секреты.mp3 " },
+        { name: "Хватит ", url: "music/Хватит.mp3 " },
+        { name: "Lilium (Music Box) ", url: "music/Lilium(Music_Box).mp3 " }
     ]
 };
 
 // ==========================================================================
 // 2. СОСТОЯНИЕ ИГРЫ
 // ==========================================================================
-
 const gameState = {
     currentQuestionIndex: 0,
     stats: { ...CONFIG.INITIAL_STATS },
@@ -84,43 +51,32 @@ const gameState = {
     historicalAccuracy: { correct: 0, total: 0 },
     imageCache: new Map(),
     currentTrackIndex: 0,
-    isHeartbeatPlaying: false
+    isHeartbeatPlaying: false,
+    rafDragId: null
 };
 
 // ==========================================================================
 // 3. DOM-ЭЛЕМЕНТЫ (кэширование)
 // ==========================================================================
-
 const DOM = {
-    // Карточка и элементы выбора
     card: document.getElementById('game-card'),
     leftLabel: document.getElementById('choice-left'),
     rightLabel: document.getElementById('choice-right'),
     cardDateBelow: document.getElementById('card-date-below'),
-    
-    // Таймлайн
     timelineMarker: document.getElementById('timeline-marker'),
     timelineLabels: document.getElementById('timeline-labels'),
-    
-    // Экраны
     startScreen: document.getElementById('start-screen'),
     disclaimerScreen: document.getElementById('disclaimer-screen'),
     mainContent: document.querySelector('.main-layout'),
     gameOverScreen: document.getElementById('game-over-screen'),
-    
-    // Кнопки меню
     playBtn: document.getElementById('play-btn'),
     continueBtn: document.getElementById('continue-btn'),
     aboutBtn: document.getElementById('about-btn'),
-    
-    // Модальные окна
     aboutModal: document.getElementById('about-modal'),
     closeAboutBtn: document.getElementById('close-about'),
     rulesBtn: document.getElementById('rules-btn'),
     rulesModal: document.getElementById('rules-modal'),
     closeRulesBtn: document.getElementById('close-rules'),
-    
-    // Музыкальный плеер
     audio: document.getElementById('bg-music'),
     playerIcon: document.getElementById('player-icon'),
     playerPanel: document.getElementById('player-panel'),
@@ -130,88 +86,48 @@ const DOM = {
     volumeValue: document.getElementById('volume-value'),
     trackNameSpan: document.getElementById('track-name'),
     heartbeatSound: document.getElementById('heartbeat-sound'),
-    
-    // Частицы и эффекты
     particlesContainer: document.getElementById('particles'),
     typewriterEl: document.getElementById('typewriter')
 };
 
 // ==========================================================================
-// 4. УТИЛИТЫ
+// 4. УТИЛИТЫ (Оптимизированы для снижения Layout Thrashing)
 // ==========================================================================
+function getEventX(e) { return e.touches ? e.touches[0].clientX : e.clientX; }
+function getEventEndX(e) { return e.changedTouches ? e.changedTouches[0].clientX : e.clientX; }
 
-/**
- * Получает X-координату из события (мыши или касания)
- */
-function getEventX(e) {
-    return e.touches ? e.touches[0].clientX : e.clientX;
-}
-
-/**
- * Получает финальную X-координату из события окончания
- */
-function getEventEndX(e) {
-    return e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-}
-
-/**
- * Предзагружает изображение и кэширует его
- */
 function preloadImage(src) {
-    if (!src || gameState.imageCache.has(src)) {
-        return Promise.resolve(gameState.imageCache.get(src));
-    }
-    
+    if (!src || gameState.imageCache.has(src)) return Promise.resolve(gameState.imageCache.get(src));
     return new Promise((resolve, reject) => {
         const img = new Image();
-        img.onload = () => {
-            gameState.imageCache.set(src, img);
-            resolve(img);
-        };
+        img.onload = () => { gameState.imageCache.set(src, img); resolve(img); };
         img.onerror = reject;
         img.src = src;
     });
 }
 
-/**
- * Предзагружает все изображения из вопросов
- */
 function preloadAllImages() {
-    const uniqueImages = new Set();
-    questions.forEach(q => {
-        if (q.image && q.image.trim() !== '') {
-            uniqueImages.add(q.image);
-        }
-    });
-    
-    console.log(`Предзагрузка ${uniqueImages.size} изображений...`);
-    uniqueImages.forEach(src => {
-        preloadImage(src).catch(e => console.warn(`Не удалось загрузить: ${src}`, e));
-    });
+    const unique = new Set();
+    questions.forEach(q => q.image && q.image.trim() && unique.add(q.image));
+    console.log(`Предзагрузка ${unique.size} изображений...`);
+    unique.forEach(src => preloadImage(src).catch(() => {}));
 }
 
-/**
-Автоподгон размера шрифта под контейнер (УСКОРЕНО: шаг 1px вместо 0.5)
-*/
+// Оптимизированный автофит: минимизирует принудительные рефлоу
 function autoFitText(element, maxSize = CONFIG.TEXT_FIT.CARD_MAX, minSize = CONFIG.TEXT_FIT.CARD_MIN) {
     if (!element) return;
-    
-    // 🔧 ФИКСИРОВАННАЯ высота — карточка не меняет размер от длины текста
     element.style.height = '180px';
     element.style.overflow = 'hidden';
-    
     let currentSize = maxSize;
-    element.style.fontSize = currentSize + 'px';
-    
-    while (
-        (element.scrollHeight > element.clientHeight ||
-         element.scrollWidth > element.clientWidth) &&
-        currentSize > minSize
-    ) {
-        currentSize -= CONFIG.TEXT_FIT.STEP;
+    if (element.textContent.length < 120) { element.style.fontSize = currentSize + 'px'; return; }
+
+    let iterations = 0;
+    while (iterations < 5 && currentSize > minSize) {
         element.style.fontSize = currentSize + 'px';
+        if (element.scrollHeight <= element.clientHeight) break;
+        currentSize -= 1.5;
+        iterations++;
     }
-    
     if (currentSize <= minSize && element.scrollHeight > element.clientHeight) {
         element.style.display = '-webkit-box';
         element.style.webkitLineClamp = '6';
@@ -219,179 +135,114 @@ function autoFitText(element, maxSize = CONFIG.TEXT_FIT.CARD_MAX, minSize = CONF
     }
 }
 
-/**
-Автоподгон размера шрифта для плашек выбора (УСКОРЕНО)
-*/
 function autoFitChoice(element, maxSize = CONFIG.TEXT_FIT.CHOICE_MAX, minSize = CONFIG.TEXT_FIT.CHOICE_MIN) {
     if (!element) return;
     let currentSize = maxSize;
-    element.style.fontSize = currentSize + 'px';
-    // Уменьшаем, пока текст не влезет в границы
-    while (
-        (element.scrollWidth > element.clientWidth ||
-        element.scrollHeight > element.clientHeight) &&
-        currentSize > minSize
-    ) {
-        currentSize -= CONFIG.TEXT_FIT.STEP;
+    let iterations = 0;
+    while (iterations < 4 && currentSize > minSize) {
         element.style.fontSize = currentSize + 'px';
+        if (element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight) break;
+        currentSize -= 1;
+        iterations++;
     }
 }
 
-/**
- * Предотвращает перетаскивание изображений
- */
 function preventImageDrag() {
-    const images = document.querySelectorAll('img');
-    images.forEach(img => {
-        img.addEventListener('dragstart', (e) => { 
-            e.preventDefault(); 
-            return false; 
-        });
-        img.addEventListener('contextmenu', (e) => { 
-            e.preventDefault(); 
-        });
+    document.querySelectorAll('img').forEach(img => {
+        img.ondragstart = () => false;
+        img.oncontextmenu = () => false;
     });
 }
 
 // ==========================================================================
 // 5. УПРАВЛЕНИЕ ЭКРАНАМИ
 // ==========================================================================
-
-/**
-Запускает игру с плавным появлением (УСКОРЕНО)
-*/
 function startGame() {
     if (DOM.mainContent) {
         DOM.mainContent.classList.remove('main-content-hidden');
         DOM.mainContent.classList.add('main-content-visible');
     }
-    if (gameState.currentQuestionIndex === 0) {
-        updateCardContent();
-    }
-    // Плавно включаем карточку с задержкой (было CONFIG.CARD.ANIMATION_DURATION)
+    if (DOM.rulesBtn) DOM.rulesBtn.classList.add('ui-visible');
+    if (gameState.currentQuestionIndex === 0) updateCardContent();
     setTimeout(() => {
-        if (DOM.card) {
-            DOM.card.style.pointerEvents = 'auto';
-            DOM.card.style.opacity = '1';
-            DOM.card.style.transform = 'scale(1)';
-        }
-    }, 150);
+        if (DOM.card) { DOM.card.style.pointerEvents = 'auto'; DOM.card.style.opacity = '1'; DOM.card.style.transform = 'scale(1)'; }
+    }, CONFIG.CARD.ANIMATION_DURATION);
 }
 
-/**
-Скрывает дисклеймер и запускает игру (УСКОРЕНО: 800→UI.SCREEN_FADE)
-*/
 function hideDisclaimerAndStart() {
-    DOM.disclaimerScreen.style.transition = `opacity ${CONFIG.UI.SCREEN_FADE}ms ease`;
+    DOM.disclaimerScreen.style.transition = 'opacity 0.8s ease';
     DOM.disclaimerScreen.style.opacity = '0';
     setTimeout(() => {
         DOM.disclaimerScreen.style.display = 'none';
         DOM.disclaimerScreen.style.visibility = 'hidden';
         startGame();
-    }, CONFIG.UI.SCREEN_FADE);
+    }, 800);
 }
 
 // ==========================================================================
 // 6. ТАЙМЛАЙН
 // ==========================================================================
-
-/**
- * Обновляет позицию маркера на таймлайне
- */
 function updateTimelinePosition() {
     const timelineContainer = document.querySelector('.timeline-container');
     if (!timelineContainer) return;
-    
     const containerHeight = timelineContainer.offsetHeight;
-    const totalMonths = CONFIG.MONTHS.short.length;
     const padding = window.innerWidth <= 768 ? 10 : 20;
     const availableHeight = containerHeight - padding * 2;
-    
-    let position;
+    let position = padding + (gameState.currentQuestionIndex / (CONFIG.MONTHS.short.length - 1)) * availableHeight;
+
     if (window.innerWidth <= 768) {
-        // Горизонтальный таймлайн: двигаем left
-        position = padding + (gameState.currentQuestionIndex / (totalMonths - 1)) * availableHeight;
         DOM.timelineMarker.style.left = `${position}px`;
         DOM.timelineMarker.style.top = '50%';
         DOM.timelineMarker.style.transform = 'translateY(-50%)';
     } else {
-        // Вертикальный: двигаем top
-        position = padding + (gameState.currentQuestionIndex / (totalMonths - 1)) * availableHeight;
         DOM.timelineMarker.style.top = `${position}px`;
         DOM.timelineMarker.style.left = '50%';
         DOM.timelineMarker.style.transform = 'translateX(-50%)';
     }
-    
     const ball = DOM.timelineMarker.querySelector('.marker-ball');
     if (ball) {
-        ball.style.transform = window.innerWidth <= 768 ? 'translateY(-50%) scale(1.2)' : 'scale(1.2)';
-        setTimeout(() => { 
-            ball.style.transform = window.innerWidth <= 768 ? 'translateY(-50%) scale(1)' : 'scale(1)'; 
-        }, 200);
+        const scale = window.innerWidth <= 768 ? 'translateY(-50%) scale(1.2)' : 'scale(1.2)';
+        ball.style.transform = scale;
+        setTimeout(() => { ball.style.transform = window.innerWidth <= 768 ? 'translateY(-50%) scale(1)' : 'scale(1)'; }, 200);
     }
 }
 
-/**
- * Создает метки месяцев на таймлайне
- */
 function createTimelineLabels() {
     if (!DOM.timelineLabels) return;
-    
-    CONFIG.MONTHS.short.forEach((month) => {
-        const span = document.createElement('span');
-        span.textContent = month;
-        DOM.timelineLabels.appendChild(span);
-    });
+    CONFIG.MONTHS.short.forEach(m => { const s = document.createElement('span'); s.textContent = m; DOM.timelineLabels.appendChild(s); });
 }
 
 // ==========================================================================
-// 7. КАРТОЧКА И КОНТЕНТ
+// 7. КАРТОЧКА И КОНТЕНТ (Пакетные DOM-обновления)
 // ==========================================================================
-
-/**
- * Обновляет содержимое карточки
- */
 function updateCardContent() {
-    if (gameState.currentQuestionIndex >= questions.length) {
-        showFinalVerdict();
-        return;
-    }
-    
+    if (gameState.currentQuestionIndex >= questions.length) { showFinalVerdict(); return; }
     const data = questions[gameState.currentQuestionIndex];
-    
-    // Меняем рамку
+
     if (DOM.card) {
         DOM.card.classList.remove('border-blue', 'border-orange', 'border-red', 'border-gold');
-        if (data.borderColor) {
-            DOM.card.classList.add(`border-${data.borderColor}`);
-        }
+        if (data.borderColor) DOM.card.classList.add(`border-${data.borderColor}`);
     }
-    
+
     const imageContainer = document.querySelector('.card-image');
-    const imgElement = imageContainer ? imageContainer.querySelector('img') : null;
-    
-    // Берем дату из карточки, если её нет — генерируем по индексу
+    const imgElement = imageContainer?.querySelector('img');
     let displayDate = data.date;
     if (!displayDate) {
-        const currentMonth = CONFIG.MONTHS.full[gameState.currentQuestionIndex];
-        const currentYear = gameState.currentQuestionIndex < 7 ? "1831" : "1832";
-        displayDate = `${currentMonth} ${currentYear}`;
+        const m = CONFIG.MONTHS.full[gameState.currentQuestionIndex];
+        const y = gameState.currentQuestionIndex < 7 ? "1831" : "1832";
+        displayDate = `${m} ${y}`;
     }
-    
-    // Плавная смена изображения
+
     if (data.image && imgElement) {
         imgElement.style.display = 'block';
-        
-        const cachedImg = gameState.imageCache.get(data.image);
-        if (cachedImg) {
-            imgElement.src = cachedImg.src;
+        const cached = gameState.imageCache.get(data.image);
+        if (cached) {
+            imgElement.src = cached.src;
             if (imageContainer) imageContainer.style.background = "transparent";
         } else {
             imgElement.style.opacity = '0';
             imgElement.src = data.image;
-            imgElement.onload = () => {
-                imgElement.style.opacity = '1';
-            };
+            imgElement.onload = () => { imgElement.style.opacity = '1'; };
             if (imageContainer) imageContainer.style.background = "transparent";
         }
         imgElement.setAttribute('draggable', 'false');
@@ -399,170 +250,94 @@ function updateCardContent() {
         imgElement.style.display = 'none';
         if (imageContainer) imageContainer.style.background = data.color || "#333";
     }
-    
+
     const cardTextEl = document.querySelector('.card-text');
     const characterNameEl = document.querySelector('.character-name');
-    
-    // Плавная смена текста (УСКОРЕНО: 150→UI.TEXT_FADE)
+
     if (cardTextEl) {
         cardTextEl.style.opacity = '0';
         setTimeout(() => {
             cardTextEl.innerHTML = data.text;
             autoFitText(cardTextEl);
-            requestAnimationFrame(() => {
-                cardTextEl.style.opacity = '1';
-            });
-        }, CONFIG.UI.TEXT_FADE);
+            requestAnimationFrame(() => { cardTextEl.style.opacity = '1'; });
+        }, 100);
     }
-
     if (characterNameEl) {
         characterNameEl.style.opacity = '0';
-        setTimeout(() => {
-            characterNameEl.innerHTML = data.name;
-            characterNameEl.style.opacity = '1';
-        }, CONFIG.UI.NAME_FADE);
+        setTimeout(() => { characterNameEl.innerHTML = data.name; characterNameEl.style.opacity = '1'; }, 50);
     }
-    
     if (DOM.cardDateBelow) DOM.cardDateBelow.innerHTML = displayDate;
-    
-    // Скрываем плашки выбора, если текст пустой
-    const leftText = data.left ? data.left.trim() : '';
-    const rightText = data.right ? data.right.trim() : '';
-    
+
+    const leftText = data.left?.trim() || '';
+    const rightText = data.right?.trim() || '';
     if (DOM.leftLabel) {
-        if (leftText) {
-            DOM.leftLabel.innerText = leftText;
-            DOM.leftLabel.style.display = 'block';
-            DOM.leftLabel.style.fontSize = '13px';
-            autoFitChoice(DOM.leftLabel);
-        } else {
-            DOM.leftLabel.innerText = '';
-            DOM.leftLabel.style.display = 'none';
-        }
+        if (leftText) { DOM.leftLabel.innerText = leftText; DOM.leftLabel.style.display = 'block'; autoFitChoice(DOM.leftLabel); }
+        else { DOM.leftLabel.style.display = 'none'; }
     }
-    
     if (DOM.rightLabel) {
-        if (rightText) {
-            DOM.rightLabel.innerText = rightText;
-            DOM.rightLabel.style.display = 'block';
-            DOM.rightLabel.style.fontSize = '13px';
-            autoFitChoice(DOM.rightLabel);
-        } else {
-            DOM.rightLabel.innerText = '';
-            DOM.rightLabel.style.display = 'none';
-        }
+        if (rightText) { DOM.rightLabel.innerText = rightText; DOM.rightLabel.style.display = 'block'; autoFitChoice(DOM.rightLabel); }
+        else { DOM.rightLabel.style.display = 'none'; }
     }
-    
-    // Предзагружаем следующие изображения
-    const nextIndex = gameState.currentQuestionIndex + 1;
-    if (nextIndex < questions.length && questions[nextIndex].image) {
-        preloadImage(questions[nextIndex].image).catch(() => {});
-    }
-    
-    const nextNextIndex = gameState.currentQuestionIndex + 2;
-    if (nextNextIndex < questions.length && questions[nextNextIndex].image) {
-        preloadImage(questions[nextNextIndex].image).catch(() => {});
-    }
-    
+
+    // Асинхронная предзагрузка
+    [gameState.currentQuestionIndex + 1, gameState.currentQuestionIndex + 2].forEach(i => {
+        if (i < questions.length && questions[i].image) preloadImage(questions[i].image).catch(() => {});
+    });
+
     updateHeartbeat();
 }
 
-/**
-Сбрасывает карточку для следующего вопроса (УСКОРЕНО)
-*/
 function resetCard() {
     gameState.currentQuestionIndex++;
     updateCardContent();
-    
     if (gameState.currentQuestionIndex < questions.length && DOM.card) {
-        // 🔧 ПЛАВНОЕ ПОЯВЛЕНИЕ: 
-        // 1. Начинаем уменьшенной и чуть выше
         DOM.card.style.transition = 'none';
-        DOM.card.style.transform = 'translateX(0px) scale(0.85) translateY(20px)';
-        DOM.card.style.opacity = '0';
-        
-        // 2. На следующем кадре — анимация к нормальному состоянию
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                DOM.card.style.transition = 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
-                DOM.card.style.opacity = '1';
-                DOM.card.style.transform = 'translateX(0px) scale(1) translateY(0px)';
-            });
-        });
+        DOM.card.style.transform = 'translateX(0px) scale(0.9) rotate(0deg)';
+        setTimeout(() => {
+            DOM.card.style.transition = 'all 0.4s ease';
+            DOM.card.style.opacity = '1';
+            DOM.card.style.transform = 'translateX(0px) scale(1) rotate(0deg)';
+        }, 50);
     }
 }
 
 // ==========================================================================
-// 8. ОБРАБОТКА ПЕРЕТАСКИВАНИЯ
+// 8. ОБРАБОТКА ПЕРЕТАСКИВАНИЯ (rAF Throttling + объединение патчей)
 // ==========================================================================
-
 function handleDragStart(e) {
     if (e.target.tagName === 'IMG') return;
-    
     gameState.isDragging = true;
     gameState.startX = getEventX(e);
     DOM.card.style.transition = 'none';
-    
     if (e.type === 'touchstart') e.preventDefault();
 }
 
 function handleDragMove(e) {
     if (!gameState.isDragging) return;
     if (e.type === 'touchmove') e.preventDefault();
-    
-    const currentX = getEventX(e);
-    let moveX = currentX - gameState.startX;
-    
-    if (!DOM.card) return;
-    
-    // 🔧 РАСЧЁТ БЕЗОПАСНОЙ ЗОНЫ: углы карточки никогда не выходят за экран
-    const screenWidth = window.innerWidth;
-    const cardWidth = DOM.card.offsetWidth;
-    const cardHeight = DOM.card.offsetHeight;
-    
-    // Минимальный отступ от края = 0.5 см ≈ 19px, берём 22px с запасом
-    const EDGE_PADDING = 22;
-    
-    // Пробуем текущее смещение, считаем угол
-    let testMove = Math.max(-CONFIG.CARD.MAX_DRAG_DISTANCE, 
-                   Math.min(CONFIG.CARD.MAX_DRAG_DISTANCE, moveX));
-    
-    const testRotation = testMove / CONFIG.CARD.ROTATION_FACTOR;
-    const rotationRad = Math.abs(testRotation) * Math.PI / 180;
-    
-    // 🔧 На сколько пикселей угол "вылетает" из-за поворота
-    const cornerOverflowX = Math.sin(rotationRad) * (cardHeight / 2);
-    
-    // Максимальное безопасное смещение
-    const maxSafeMove = Math.max(
-        40, // Минимум чтобы хоть немного двигалось
-        (screenWidth - cardWidth) / 2 - cornerOverflowX - EDGE_PADDING
-    );
-    
-    // Ограничиваем
-    if (moveX > maxSafeMove) moveX = maxSafeMove;
-    if (moveX < -maxSafeMove) moveX = -maxSafeMove;
-    
-    const rotation = moveX / CONFIG.CARD.ROTATION_FACTOR;
-    
-    // 🔧 Используем requestAnimationFrame для плавности
-    requestAnimationFrame(() => {
-        if (DOM.card) {
-            DOM.card.style.transform = `translateX(${moveX}px) rotate(${rotation}deg)`;
+    if (gameState.rafDragId) return; // Throttle to 60fps
+
+    gameState.rafDragId = requestAnimationFrame(() => {
+        const currentX = getEventX(e);
+        let moveX = Math.max(-CONFIG.CARD.MAX_DRAG_DISTANCE, Math.min(CONFIG.CARD.MAX_DRAG_DISTANCE, currentX - gameState.startX));
+        const rotation = moveX / CONFIG.CARD.ROTATION_FACTOR;
+        DOM.card.style.transform = `translateX(${moveX}px) rotate(${rotation}deg)`;
+
+        const absMove = Math.abs(moveX);
+        const appearAt = CONFIG.CARD.CHOICE_APPEAR_THRESHOLD;
+        const fullAt = CONFIG.CARD.CHOICE_FULL_OPACITY_AT;
+        let opacity = 0;
+        if (absMove > appearAt) {
+            const progress = (absMove - appearAt) / (fullAt - appearAt);
+            opacity = 1 - Math.pow(1 - Math.min(progress, 1), 2); // easeOutQuad
         }
+
+        if (moveX > appearAt) { DOM.rightLabel.style.opacity = opacity; DOM.leftLabel.style.opacity = 0; }
+        else if (moveX < -appearAt) { DOM.leftLabel.style.opacity = opacity; DOM.rightLabel.style.opacity = 0; }
+        else { DOM.leftLabel.style.opacity = 0; DOM.rightLabel.style.opacity = 0; }
+
+        gameState.rafDragId = null;
     });
-    
-    // Плашки выбора
-    if (moveX > 20) {
-        if (DOM.rightLabel) DOM.rightLabel.style.opacity = Math.min(moveX / 100, 1);
-        if (DOM.leftLabel) DOM.leftLabel.style.opacity = 0;
-    } else if (moveX < -20) {
-        if (DOM.leftLabel) DOM.leftLabel.style.opacity = Math.min(Math.abs(moveX) / 100, 1);
-        if (DOM.rightLabel) DOM.rightLabel.style.opacity = 0;
-    } else {
-        if (DOM.leftLabel) DOM.leftLabel.style.opacity = 0;
-        if (DOM.rightLabel) DOM.rightLabel.style.opacity = 0;
-    }
 }
 
 function handleDragEnd(e) {
@@ -570,20 +345,17 @@ function handleDragEnd(e) {
     gameState.isDragging = false;
     const endX = getEventEndX(e);
     const finalMoveX = endX - gameState.startX;
-    
+
     if (Math.abs(finalMoveX) > CONFIG.CARD.SWIPE_THRESHOLD && DOM.card) {
         const direction = finalMoveX > 0 ? 1 : -1;
         const currentData = questions[gameState.currentQuestionIndex];
-        let isBadEnd = false;
-        let badEndReason = " ";
-        let badChoiceText = " ";
-        let badEndEpilogue = " ";
-        
+        let isBadEnd = false, badEndReason = " ", badChoiceText = " ", badEndEpilogue = " ";
+
         if (direction === -1) {
             badChoiceText = currentData.left;
             if (currentData.badEndLeft) {
                 isBadEnd = true;
-                badEndReason = currentData.badEndLeftReason || "Ваше решение привело к катастрофическим последствиям для империи.";
+                badEndReason = currentData.badEndLeftReason || "Ваше решение привело к катастрофическим последствиям для империи. ";
                 badEndEpilogue = currentData.badEndLeftEpilogue || " ";
             }
             if (!isBadEnd) {
@@ -595,7 +367,7 @@ function handleDragEnd(e) {
             badChoiceText = currentData.right;
             if (currentData.badEndRight) {
                 isBadEnd = true;
-                badEndReason = currentData.badEndRightReason || "Ваше решение привело к катастрофическим последствиям для империи.";
+                badEndReason = currentData.badEndRightReason || "Ваше решение привело к катастрофическим последствиям для империи. ";
                 badEndEpilogue = currentData.badEndRightEpilogue || " ";
             }
             if (!isBadEnd) {
@@ -604,538 +376,218 @@ function handleDragEnd(e) {
                 gameState.stats.treasury += currentData.rightEff[2];
             }
         }
-        
-        // Запись исторической точности
+
         if (!isBadEnd && currentData.correctChoice) {
             gameState.historicalAccuracy.total++;
-            const playerChoice = direction === -1 ? 'left' : 'right';
-            if (playerChoice === currentData.correctChoice) {
-                gameState.historicalAccuracy.correct++;
-            }
+            if ((direction === -1 ? 'left' : 'right') === currentData.correctChoice) gameState.historicalAccuracy.correct++;
         }
-        
-        if (isBadEnd) {
-            showBadEnd(badEndReason, badChoiceText, badEndEpilogue);
-            return;
-        }
-        
-        // 🔧 ПЛАВНАЯ АНИМАЦИЯ УЛЁТА:
-        // 1. Уменьшаем поворот до 30° (было 60° — дёргалось)
-        // 2. Расстояние = ширина экрана (улетает за край гарантированно)
-        // 3. cubic-bezier для плавности
-        const flyDistance = window.innerWidth;
-        
-        DOM.card.style.transition = 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease';
-        
-        requestAnimationFrame(() => {
-            DOM.card.style.transform = `translateX(${direction * flyDistance}px) rotate(${direction * 30}deg)`;
-            DOM.card.style.opacity = '0';
-        });
-        
+
+        if (isBadEnd) { showBadEnd(badEndReason, badChoiceText, badEndEpilogue); return; }
+
+        DOM.card.style.transition = 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)';
+        DOM.card.style.transform = `translateX(${direction * 600}px) rotate(${direction * 60}deg)`;
+        DOM.card.style.opacity = '0';
         setTimeout(resetCard, CONFIG.CARD.ANIMATION_DURATION);
     } else if (DOM.card) {
-        // 🔧 Плавный возврат
-        DOM.card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-        requestAnimationFrame(() => {
-            DOM.card.style.transform = 'translateX(0px) rotate(0deg)';
-        });
+        DOM.card.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        DOM.card.style.transform = 'translateX(0px) rotate(0deg)';
     }
-    
-    // Скрываем плашки выбора
-    if (DOM.leftLabel) DOM.leftLabel.style.opacity = 0;
-    if (DOM.rightLabel) DOM.rightLabel.style.opacity = 0;
+    DOM.leftLabel.style.opacity = 0;
+    DOM.rightLabel.style.opacity = 0;
 }
 
 // ==========================================================================
 // 9. КОНЦОВКИ ИГРЫ
 // ==========================================================================
-
-/**
- * Показывает экран плохой концовки
- */
 function showBadEnd(reasonText, badChoiceText, epilogueText) {
     stopHeartbeat();
-    
-    const gameOverBox = DOM.gameOverScreen.querySelector('.game-over-box');
+    const box = DOM.gameOverScreen.querySelector('.game-over-box');
     const finalEpilogue = epilogueText || "Империя пала. История переписана навсегда...";
-    
-    gameOverBox.innerHTML = `
-        <div class="corner-bl"></div>
-        <div class="corner-br"></div>
-        <div class="bad-end-header">
-            <div class="bad-end-skull">⚰️</div>
-            <h2 class="bad-end-title">ИСТОРИЯ ПРЕРВАНА</h2>
-            <div class="bad-end-skull">⚰️</div>
-        </div>
-        <div class="bad-end-divider">
-            <span class="divider-line"></span>
-            <span class="divider-icon">✧</span>
-            <span class="divider-line"></span>
-        </div>
-        <div class="bad-end-choice">
-            <span class="choice-label-text">Роковой выбор:</span>
-            <span class="choice-value">«${badChoiceText}»</span>
-        </div>
-        <div class="bad-end-consequence">
-            <span class="consequence-icon">☠</span>
-            <p class="consequence-text">${reasonText}</p>
-        </div>
-        <div class="bad-end-divider">
-            <span class="divider-line short"></span>
-            <span class="divider-icon">✦</span>
-            <span class="divider-line short"></span>
-        </div>
-        <p class="bad-end-epilogue">${finalEpilogue}</p>
-        <button class="restart-btn bad-end-restart" id="restart-btn">
-            <span class="restart-sword">🗡️</span>
-            <span class="restart-text">НАЧАТЬ ЗАНОВО</span>
-            <span class="restart-sword">⚔️</span>
-        </button>
-    `;
-    
+    box.innerHTML = `<div class="corner-bl"></div><div class="corner-br"></div><div class="bad-end-header"><div class="bad-end-skull">⚰️</div><h2 class="bad-end-title">ИСТОРИЯ ПРЕРВАНА</h2><div class="bad-end-skull">⚰️</div></div><div class="bad-end-divider"><span class="divider-line"></span><span class="divider-icon">✧</span><span class="divider-line"></span></div><div class="bad-end-choice"><span class="choice-label-text">Роковой выбор:</span><span class="choice-value">«${badChoiceText}»</span></div><div class="bad-end-consequence"><span class="consequence-icon">☠</span><p class="consequence-text">${reasonText}</p></div><div class="bad-end-divider"><span class="divider-line short"></span><span class="divider-icon">✦</span><span class="divider-line short"></span></div><p class="bad-end-epilogue">${finalEpilogue}</p><button class="restart-btn bad-end-restart" id="restart-btn"><span class="restart-sword">🗡️</span><span class="restart-text">НАЧАТЬ ЗАНОВО</span><span class="restart-sword">⚔️</span></button>`;
     DOM.gameOverScreen.style.display = 'flex';
 }
 
-/**
- * Анализирует статистику для финального вердикта
- */
 function analyzeStats() {
-    const stats = [
-        { value: gameState.stats.epidemy, icon: '🧪', label: 'Эпидемия' },
-        { value: gameState.stats.reputation, icon: '👑', label: 'Репутация' },
-        { value: gameState.stats.treasury, icon: '🪙', label: 'Казна' }
-    ];
-    
-    // Ищем параметр с максимальным абсолютным значением
-    let dominant = stats.reduce((prev, curr) => 
-        Math.abs(curr.value) > Math.abs(prev.value) ? curr : prev
-    );
-    
-    return {
-        dominantStat: dominant,
-        isPositive: dominant.value > 0,
-        intensity: Math.abs(dominant.value),
-        absValue: Math.abs(dominant.value)
-    };
+    const stats = [{ value: gameState.stats.epidemy, icon: '🧪', label: 'Эпидемия' }, { value: gameState.stats.reputation, icon: '👑', label: 'Репутация' }, { value: gameState.stats.treasury, icon: '🪙', label: 'Казна' }];
+    const dominant = stats.reduce((p, c) => Math.abs(c.value) > Math.abs(p.value) ? c : p);
+    return { dominantStat: dominant, isPositive: dominant.value > 0, intensity: Math.abs(dominant.value), absValue: Math.abs(dominant.value) };
 }
 
-/**
- * Генерирует текст финальной концовки
- */
 function getEndingText(analysis, accuracyPercent = 0) {
     const { isPositive, intensity } = analysis;
-    
-    // Специальные случаи по исторической достоверности
-    if (accuracyPercent === 100) {
-        return "Вы стали тенью истории. Ни один хронист не упомянет вашего имени — и в этом ваше высшее достижение. Холера отступила к зиме, как и было предначертано: Николай I сохранил трон, Эссен — рассудок, а Мудров сгорел на своём посту, но не предал клятву. На Сенной не пролилась кровь, которой не должно было быть. Локомотив времени идёт точно по расписанию. Вы победили, исчезнув.";
-    }
-    
-    if (accuracyPercent <= 12) {
-        return "Вы выжили. Но тот Петербург, который знала история — с храбростью Эссена, с речью Императора на Сенной, с докторами, умиравшими на постах — тот Петербург вы убили. Вы заменили хронику мужества хроникой полумер. Смертей было больше. Бунты — жесточе. Вы не пустили поезд под откос — вы свернули на ржавый запасной путь, и он едва дотащился до станции, скрипя колёсами по костям тех, кто в настоящей истории остался жив.";
-    }
-    
-    if (accuracyPercent === 98) {
-        return "Почти безупречно. Но где-то — одна уступка страху, один компромисс — оставил шрам на ткани времени. Историки будущего найдут странную аномалию в архивах 1831 года: лишние три сотни имён в метрических книгах, или купца, разорившегося не вовремя, или врача, сломленного там, где должен был выстоять. Ткань истории цела. Но по ней прошла рябь, и кто-то в будущем это заметит.";
-    }
-    
-    // Стандартные тексты по стат-анализу
-    if (isPositive && intensity >= 70) return "Ваша мудрость и хладнокровие спасли Империю от полного коллапса. История запомнит эти дни как время великого противостояния хаосу.";
-    if (isPositive && intensity >= 40) return "Вы удержали ситуацию на плаву. Цена была высока, но ткань истории сохранена. Санкт-Петербург выстоял.";
-    if (isPositive) return "Неплохо... но многие решения оказались половинчатыми. Империя выжила, но шрамы от тех событий будут заживать ещё долго.";
-    if (intensity >= 70) return "Катастрофа. Ваши решения спровоцировали цепную реакцию: бунты, экономический крах и падение доверия к власти. Локомотив времени сошёл с рельсов.";
-    if (intensity >= 40) return "Провал. Паника и неверные шаги погрузили город в анархию. Вы не смогли удержать баланс, и история переписана кровавыми чернилами.";
-    return "Досадная ошибка. Вы пытались действовать, но не хватило решимости или знаний. Эпидемия оставила после себя слишком глубокие раны.";
+    if (accuracyPercent === 100) return "Вы стали тенью истории. Ни один хронист не упомянет вашего имени — и в этом ваше высшее достижение. Холера отступила к зиме, как и было предначертано: Николай I сохранил трон, Эссен — рассудок, а Мудров сгорел на своём посту, но не предал клятву. На Сенной не пролилась кровь, которой не должно было быть. Локомотив времени идёт точно по расписанию. Вы победили, исчезнув.";
+    if (accuracyPercent <= 12) return "Вы выжили. Но тот Петербург, который знала история — с храбростью Эссена, с речью Императора на Сенной, с докторами, умиравшими на постах — тот Петербург вы убили. Вы заменили хронику мужества хроникой полумер. Смертей было больше. Бунты — жесточе. Вы не пустили поезд под откос — вы свернули на ржавый запасной путь, и он едва дотащился до станции, скрипя колёсами по костям тех, кто в настоящей истории остался жив.";
+    if (accuracyPercent === 98) return "Почти безупречно. Но где-то — одна уступка страху, один компромисс — оставил шрам на ткани времени. Историки будущего найдут странную аномалию в архивах 1831 года: лишние три сотни имён в метрических книгах, или купца, разорившегося не вовремя, или врача, сломленного там, где должен был выстоять. Ткань истории цела. Но по ней прошла рябь, и кто-то в будущем это заметит.";
+    if (isPositive && intensity >= 70) return "Ваша мудрость и хладнокровие спасли Империю от полного коллапса. История запомнит эти дни как время великого противостояния хаосу. ";
+    if (isPositive && intensity >= 40) return "Вы удержали ситуацию на плаву. Цена была высока, но ткань истории сохранена. Санкт-Петербург выстоял. ";
+    if (isPositive) return "Неплохо... но многие решения оказались половинчатыми. Империя выжила, но шрамы от тех событий будут заживать ещё долго. ";
+    if (intensity >= 70) return "Катастрофа. Ваши решения спровоцировали цепную реакцию: бунты, экономический крах и падение доверия к власти. Локомотив времени сошёл с рельсов. ";
+    if (intensity >= 40) return "Провал. Паника и неверные шаги погрузили город в анархию. Вы не смогли удержать баланс, и история переписана кровавыми чернилами. ";
+    return "Досадная ошибка. Вы пытались действовать, но не хватило решимости или знаний. Эпидемия оставила после себя слишком глубокие раны. ";
 }
 
-/**
- * Показывает финальный вердикт игры
- */
 function showFinalVerdict() {
     stopHeartbeat();
-    
     const analysis = analyzeStats();
     const { isPositive, intensity } = analysis;
-    
-    let accuracyPercent = gameState.historicalAccuracy.total > 0 
-        ? Math.round((gameState.historicalAccuracy.correct / gameState.historicalAccuracy.total) * 100) 
-        : 0;
-    
-    let accuracyText = "КАТАСТРОФИЧЕСКИ", accuracyColor = "#b85c1a";
-    if (accuracyPercent >= 80) { accuracyText = "БЛЕСТЯЩЕ"; accuracyColor = "#c4a747"; }
-    else if (accuracyPercent >= 60) { accuracyText = "ХОРОШО"; accuracyColor = "#7cb342"; }
-    else if (accuracyPercent >= 40) { accuracyText = "УДОВЛЕТВОРИТЕЛЬНО"; accuracyColor = "#e8b84a"; }
-    else if (accuracyPercent >= 20) { accuracyText = "ПЛОХО"; accuracyColor = "#b85c1a"; }
-    
+    let accuracyPercent = gameState.historicalAccuracy.total > 0 ? Math.round((gameState.historicalAccuracy.correct / gameState.historicalAccuracy.total) * 100) : 0;
+    let accuracyText = "КАТАСТРОФИЧЕСКИ ", accuracyColor = "#b85c1a ";
+    if (accuracyPercent >= 80) { accuracyText = "БЛЕСТЯЩЕ "; accuracyColor = "#c4a747 "; }
+    else if (accuracyPercent >= 60) { accuracyText = "ХОРОШО "; accuracyColor = "#7cb342 "; }
+    else if (accuracyPercent >= 40) { accuracyText = "УДОВЛЕТВОРИТЕЛЬНО "; accuracyColor = "#e8b84a "; }
+    else if (accuracyPercent >= 20) { accuracyText = "ПЛОХО "; accuracyColor = "#b85c1a "; }
+
     const endingText = getEndingText(analysis, accuracyPercent);
     let endingTitle = "", endingColor = "";
-    
-    // Специальные заголовки по достоверности
-    if (accuracyPercent === 100) {
-        endingTitle = "ТКАНЬ ИСТОРИИ СОХРАНЕНА";
-        endingColor = "#f5e6c0";
-    } else if (accuracyPercent <= 12) {
-        endingTitle = "ВЫ ИЗГНАНЫ ИЗ ХРОНИК";
-        endingColor = "#6b2f0f";
-    } else if (accuracyPercent === 98) {
-        endingTitle = "ПОЧТИ. НО НЕ ВПОЛНЕ.";
-        endingColor = "#b8a992";
-    } else if (isPositive) {
-        if (intensity >= 70) { endingTitle = "ВЕЛИКАЯ ПОБЕДА"; endingColor = "#c4a747"; }
-        else if (intensity >= 40) { endingTitle = "ДОСТОЙНЫЙ РЕЗУЛЬТАТ"; endingColor = "#7cb342"; }
-        else { endingTitle = "НЕПЛОХО... НО МАЛО"; endingColor = "#8a7a60"; }
+    if (accuracyPercent === 100) { endingTitle = "ТКАНЬ ИСТОРИИ СОХРАНЕНА "; endingColor = "#f5e6c0 "; }
+    else if (accuracyPercent <= 12) { endingTitle = "ВЫ ИЗГНАНЫ ИЗ ХРОНИК "; endingColor = "#6b2f0f "; }
+    else if (accuracyPercent === 98) { endingTitle = "ПОЧТИ. НО НЕ ВПОЛНЕ. "; endingColor = "#b8a992 "; }
+    else if (isPositive) {
+        if (intensity >= 70) { endingTitle = "ВЕЛИКАЯ ПОБЕДА "; endingColor = "#c4a747 "; }
+        else if (intensity >= 40) { endingTitle = "ДОСТОЙНЫЙ РЕЗУЛЬТАТ "; endingColor = "#7cb342 "; }
+        else { endingTitle = "НЕПЛОХО... НО МАЛО "; endingColor = "#8a7a60 "; }
     } else {
-        if (intensity >= 70) { endingTitle = "КАТАСТРОФА"; endingColor = "#b85c1a"; }
-        else if (intensity >= 40) { endingTitle = "ПРОВАЛ"; endingColor = "#b85c1a"; }
-        else { endingTitle = "ДОСАДНАЯ ОШИБКА"; endingColor = "#8a7a60"; }
+        if (intensity >= 70) { endingTitle = "КАТАСТРОФА "; endingColor = "#b85c1a "; }
+        else if (intensity >= 40) { endingTitle = "ПРОВАЛ "; endingColor = "#b85c1a "; }
+        else { endingTitle = "ДОСАДНАЯ ОШИБКА "; endingColor = "#8a7a60 "; }
     }
-    
-    const gameOverBox = DOM.gameOverScreen.querySelector('.game-over-box');
-    
+
+    const box = DOM.gameOverScreen.querySelector('.game-over-box');
     const getStatClass = (val, type) => {
         if (type === 'epidemy') return val < 30 ? 'stat-good' : val > 50 ? 'stat-bad' : 'stat-mid';
         if (type === 'reputation') return val > 80 ? 'stat-good' : val < 50 ? 'stat-bad' : 'stat-mid';
         return val > 0 ? 'stat-good' : val < -50 ? 'stat-bad' : 'stat-mid';
     };
-    
-    gameOverBox.innerHTML = `
-        <div class="corner-bl"></div>
-        <div class="corner-br"></div>
-        <h2 class="final-title" style="color: ${endingColor};">${endingTitle}</h2>
-        <div class="final-epilogue"><p>${endingText}</p></div>
-        
-        <div class="final-divider">
-            <span class="divider-line"></span>
-            <span class="divider-icon">⚜</span>
-            <span class="divider-line"></span>
-        </div>
-        
-        <div class="accuracy-block">
-            <div class="accuracy-title">⚜ ИСТОРИЧЕСКАЯ ДОСТОВЕРНОСТЬ ⚜</div>
-            <div class="accuracy-percent" style="color: ${accuracyColor};">${accuracyPercent}%</div>
-            <div class="accuracy-desc">(${gameState.historicalAccuracy.correct} из ${gameState.historicalAccuracy.total} решений)</div>
-        </div>
-        
-        <div class="final-stats-mini">
-            <div class="final-stat-mini">
-                <span class="stat-icon">🧪</span>
-                <span class="stat-value-mini ${getStatClass(gameState.stats.epidemy, 'epidemy')}">${gameState.stats.epidemy}</span>
-                <span class="stat-label-mini">Эпидемия</span>
-            </div>
-            <div class="final-stat-mini">
-                <span class="stat-icon">👑</span>
-                <span class="stat-value-mini ${getStatClass(gameState.stats.reputation, 'reputation')}">${gameState.stats.reputation}</span>
-                <span class="stat-label-mini">Репутация</span>
-            </div>
-            <div class="final-stat-mini">
-                <span class="stat-icon">🪙</span>
-                <span class="stat-value-mini ${getStatClass(gameState.stats.treasury, 'treasury')}">${gameState.stats.treasury}</span>
-                <span class="stat-label-mini">Казна</span>
-            </div>
-        </div>
-        
-        <button class="restart-btn final-restart" id="restart-btn">
-            <span class="restart-text">ПРОДОЛЖИТЬ ХРОНИКИ</span>
-        </button>
-    `;
-    
+    box.innerHTML = `<div class="corner-bl"></div><div class="corner-br"></div><h2 class="final-title" style="color: ${endingColor};">${endingTitle}</h2><div class="final-epilogue"><p>${endingText}</p></div><div class="final-divider"><span class="divider-line"></span><span class="divider-icon">⚜</span><span class="divider-line"></span></div><div class="accuracy-block"><div class="accuracy-title">⚜ ИСТОРИЧЕСКАЯ ДОСТОВЕРНОСТЬ ⚜</div><div class="accuracy-percent" style="color: ${accuracyColor};">${accuracyPercent}%</div><div class="accuracy-desc">(${gameState.historicalAccuracy.correct} из ${gameState.historicalAccuracy.total} решений)</div></div><div class="final-stats-mini"><div class="final-stat-mini"><span class="stat-icon">🧪</span><span class="stat-value-mini ${getStatClass(gameState.stats.epidemy, 'epidemy')}">${gameState.stats.epidemy}</span><span class="stat-label-mini">Эпидемия</span></div><div class="final-stat-mini"><span class="stat-icon">👑</span><span class="stat-value-mini ${getStatClass(gameState.stats.reputation, 'reputation')}">${gameState.stats.reputation}</span><span class="stat-label-mini">Репутация</span></div><div class="final-stat-mini"><span class="stat-icon">🪙</span><span class="stat-value-mini ${getStatClass(gameState.stats.treasury, 'treasury')}">${gameState.stats.treasury}</span><span class="stat-label-mini">Казна</span></div></div><button class="restart-btn final-restart" id="restart-btn"><span class="restart-text">ПРОДОЛЖИТЬ ХРОНИКИ</span></button>`;
     DOM.gameOverScreen.style.display = 'flex';
 }
 
-/**
- * Перезапускает игру
- */
 function restartGame() {
     stopHeartbeat();
-    
-    // Сброс переменных
     gameState.currentQuestionIndex = 0;
     gameState.stats = { ...CONFIG.INITIAL_STATS };
     gameState.historicalAccuracy = { correct: 0, total: 0 };
-    
-    // Скрываем экран концовки
     if (DOM.gameOverScreen) DOM.gameOverScreen.style.display = 'none';
-    
-    // Восстанавливаем карточку
-    if (DOM.card) {
-        DOM.card.style.display = '';
-        DOM.card.style.transition = 'none';
-        DOM.card.style.opacity = '1';
-        DOM.card.style.transform = 'translateX(0px) scale(1) rotate(0deg)';
-        DOM.card.style.pointerEvents = 'auto';
-    }
-    
-    // Сбрасываем плашки выбора
-    if (DOM.leftLabel) DOM.leftLabel.style.opacity = 0;
-    if (DOM.rightLabel) DOM.rightLabel.style.opacity = 0;
-    
-    // Обновляем UI
-    updateTimelinePosition();
-    updateCardContent();
+    if (DOM.card) { DOM.card.style.display = ''; DOM.card.style.transition = 'none'; DOM.card.style.opacity = '1'; DOM.card.style.transform = 'translateX(0px) scale(1) rotate(0deg)'; DOM.card.style.pointerEvents = 'auto'; }
+    DOM.leftLabel.style.opacity = 0; DOM.rightLabel.style.opacity = 0;
+    updateTimelinePosition(); updateCardContent();
 }
 
 // ==========================================================================
-// 10. МУЗЫКАЛЬНЫЙ ПЛЕЕР
+// 10-12. МУЗЫКА, СЕРДЦЕБИЕНИЕ, ЭФФЕКТЫ
 // ==========================================================================
-
-/**
- * Загружает трек по индексу
- */
 function loadTrack(index) {
     if (index < 0) index = CONFIG.TRACKS.length - 1;
     if (index >= CONFIG.TRACKS.length) index = 0;
-    
     gameState.currentTrackIndex = index;
-    DOM.audio.src = CONFIG.TRACKS[gameState.currentTrackIndex].url;
-    DOM.trackNameSpan.textContent = CONFIG.TRACKS[gameState.currentTrackIndex].name;
-    
-    if (!DOM.audio.paused) {
-        DOM.audio.play().catch(() => {});
-    }
+    DOM.audio.src = CONFIG.TRACKS[index].url;
+    DOM.trackNameSpan.textContent = CONFIG.TRACKS[index].name;
+    if (!DOM.audio.paused) DOM.audio.play().catch(() => {});
 }
-
-function nextTrack() {
-    gameState.currentTrackIndex++;
-    if (gameState.currentTrackIndex >= CONFIG.TRACKS.length) gameState.currentTrackIndex = 0;
-    loadTrack(gameState.currentTrackIndex);
-    DOM.audio.play().catch(() => {});
-}
-
-function prevTrack() {
-    gameState.currentTrackIndex--;
-    if (gameState.currentTrackIndex < 0) gameState.currentTrackIndex = CONFIG.TRACKS.length - 1;
-    loadTrack(gameState.currentTrackIndex);
-    DOM.audio.play().catch(() => {});
-}
-
-/**
- * Устанавливает громкость
- */
+function nextTrack() { loadTrack(gameState.currentTrackIndex + 1); DOM.audio.play().catch(() => {}); }
+function prevTrack() { loadTrack(gameState.currentTrackIndex - 1); DOM.audio.play().catch(() => {}); }
 function setVolume() {
-    const volume = DOM.volumeSlider.value / 100;
-    DOM.audio.volume = volume;
-    DOM.volumeValue.textContent = `${DOM.volumeSlider.value}%`;
-    
-    const percent = DOM.volumeSlider.value;
-    DOM.volumeSlider.style.background = `linear-gradient(90deg, #d4b872 0%, #d4b872 ${percent}%, rgba(212, 184, 114, 0.15) ${percent}%)`;
-    
-    syncAllVolumes();
+    const v = DOM.volumeSlider.value / 100;
+    DOM.audio.volume = v; DOM.volumeValue.textContent = `${DOM.volumeSlider.value}%`;
+    DOM.volumeSlider.style.background = `linear-gradient(90deg, #d4b872 0%, #d4b872 ${DOM.volumeSlider.value}%, rgba(212, 184, 114, 0.15) ${DOM.volumeSlider.value}%)`;
+    if (DOM.heartbeatSound) DOM.heartbeatSound.volume = v;
 }
-
-/**
- * Синхронизирует громкость всех аудиоэлементов
- */
-function syncAllVolumes() {
-    const currentVolume = DOM.audio.volume;
-    if (DOM.heartbeatSound) {
-        DOM.heartbeatSound.volume = currentVolume;
-    }
-}
-
-// ==========================================================================
-// 11. ЗВУК СЕРДЦЕБИЕНИЯ
-// ==========================================================================
 
 function startHeartbeat() {
     if (DOM.heartbeatSound && !gameState.isHeartbeatPlaying) {
-        DOM.heartbeatSound.volume = DOM.audio.volume;
-        DOM.heartbeatSound.currentTime = 0;
-        DOM.heartbeatSound.play().catch(e => console.log('Сердцебиение не запустилось:', e));
+        DOM.heartbeatSound.volume = DOM.audio.volume; DOM.heartbeatSound.currentTime = 0; DOM.heartbeatSound.play().catch(e => console.log('Heartbeat err:', e));
         gameState.isHeartbeatPlaying = true;
     }
 }
-
 function stopHeartbeat() {
-    if (DOM.heartbeatSound && gameState.isHeartbeatPlaying) {
-        DOM.heartbeatSound.pause();
-        DOM.heartbeatSound.currentTime = 0;
-        gameState.isHeartbeatPlaying = false;
-    }
+    if (DOM.heartbeatSound && gameState.isHeartbeatPlaying) { DOM.heartbeatSound.pause(); DOM.heartbeatSound.currentTime = 0; gameState.isHeartbeatPlaying = false; }
 }
-
 function updateHeartbeat() {
     if (!DOM.heartbeatSound) return;
-    
-    const currentData = questions[gameState.currentQuestionIndex];
-    const isRedCard = currentData && currentData.borderColor === 'red';
-    
-    if (isRedCard && !gameState.isHeartbeatPlaying) {
-        startHeartbeat();
-    } else if (!isRedCard && gameState.isHeartbeatPlaying) {
-        stopHeartbeat();
-    }
+    const d = questions[gameState.currentQuestionIndex];
+    const isRed = d && d.borderColor === 'red';
+    if (isRed && !gameState.isHeartbeatPlaying) startHeartbeat();
+    else if (!isRed && gameState.isHeartbeatPlaying) stopHeartbeat();
 }
 
-// ==========================================================================
-// 12. ЭФФЕКТЫ (ЧАСТИЦЫ И ПЕЧАТНАЯ МАШИНКА)
-// ==========================================================================
-
-/**
- * Создает частицы на стартовом экране
- */
 function createParticles() {
     if (!DOM.particlesContainer) return;
-    
     for (let i = 0; i < 50; i++) {
-        const p = document.createElement('div');
-        p.className = 'particle';
-        const size = Math.random() * 3 + 2;
-        p.style.width = p.style.height = size + 'px';
-        p.style.left = Math.random() * 100 + '%';
-        p.style.animationDuration = (Math.random() * 18 + 10) + 's';
-        p.style.animationDelay = '0s';
+        const p = document.createElement('div'); p.className = 'particle';
+        const s = Math.random() * 3 + 2;
+        p.style.width = p.style.height = s + 'px'; p.style.left = Math.random() * 100 + '%';
+        p.style.animationDuration = (Math.random() * 18 + 10) + 's'; p.style.animationDelay = '0s';
         DOM.particlesContainer.appendChild(p);
     }
 }
 
-/**
- * Эффект печатной машинки для цитат
- */
-let quoteIndex = 0;
-let charIndex = 0;
-let isDeleting = false;
-
+let quoteIndex = 0, charIndex = 0, isDeleting = false;
 function typeEffect() {
     if (!DOM.typewriterEl) return;
-    
-    const currentQuote = CONFIG.QUOTES[quoteIndex];
-    
+    const q = CONFIG.QUOTES[quoteIndex];
     if (!isDeleting) {
-        DOM.typewriterEl.textContent = currentQuote.substring(0, charIndex + 1);
-        charIndex++;
-        
-        if (charIndex === currentQuote.length) {
-            isDeleting = true;
-            setTimeout(typeEffect, 3200);
-            return;
-        }
+        DOM.typewriterEl.textContent = q.substring(0, charIndex + 1); charIndex++;
+        if (charIndex === q.length) { isDeleting = true; setTimeout(typeEffect, 3200); return; }
     } else {
-        DOM.typewriterEl.textContent = currentQuote.substring(0, charIndex - 1);
-        charIndex--;
-        
-        if (charIndex === 0) {
-            isDeleting = false;
-            quoteIndex = (quoteIndex + 1) % CONFIG.QUOTES.length;
-        }
+        DOM.typewriterEl.textContent = q.substring(0, charIndex - 1); charIndex--;
+        if (charIndex === 0) { isDeleting = false; quoteIndex = (quoteIndex + 1) % CONFIG.QUOTES.length; }
     }
-    
     setTimeout(typeEffect, isDeleting ? 30 : 58);
 }
 
 // ==========================================================================
 // 13. МОДАЛЬНЫЕ ОКНА
 // ==========================================================================
-
-function openAboutModal() {
-    if (!DOM.aboutModal) return;
-    DOM.aboutModal.classList.add('visible');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeAboutModal() {
-    if (!DOM.aboutModal) return;
-    DOM.aboutModal.classList.remove('visible');
-    setTimeout(() => { document.body.style.overflow = ''; }, 350);
-}
-
-function openRulesModal() {
-    if (!DOM.rulesModal) return;
-    DOM.rulesModal.classList.add('visible');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeRulesModal() {
-    if (!DOM.rulesModal) return;
-    DOM.rulesModal.classList.remove('visible');
-    setTimeout(() => { document.body.style.overflow = ''; }, 350);
-}
+function openAboutModal() { if (!DOM.aboutModal) return; DOM.aboutModal.classList.add('visible'); document.body.style.overflow = 'hidden'; }
+function closeAboutModal() { if (!DOM.aboutModal) return; DOM.aboutModal.classList.remove('visible'); setTimeout(() => document.body.style.overflow = '', 350); }
+function openRulesModal() { if (!DOM.rulesModal) return; DOM.rulesModal.classList.add('visible'); document.body.style.overflow = 'hidden'; if (DOM.rulesBtn) DOM.rulesBtn.classList.remove('ui-visible'); }
+function closeRulesModal() { if (!DOM.rulesModal) return; DOM.rulesModal.classList.remove('visible'); setTimeout(() => { document.body.style.overflow = ''; if (DOM.rulesBtn) DOM.rulesBtn.classList.add('ui-visible'); }, 350); }
 
 // ==========================================================================
-// 14. ИНИЦИАЛИЗАЦИЯ И ОБРАБОТЧИКИ СОБЫТИЙ
+// 14-18. ИНИЦИАЛИЗАЦИЯ, СОБЫТИЯ, АДАПТИВНОСТЬ (Консолидировано)
 // ==========================================================================
-
 function initializeGame() {
-    // Изначально скрываем основной контент
-    if (DOM.mainContent) {
-        DOM.mainContent.classList.add('main-content-hidden');
-    }
-    
-    // Блокируем карточку до старта игры
-    if (DOM.card) {
-        DOM.card.style.pointerEvents = 'none';
-        DOM.card.style.opacity = '1';
-    }
-    
-    // Создаем элементы
-    createParticles();
-    createTimelineLabels();
-    preventImageDrag();
-    
-    // Запускаем эффект печатной машинки с задержкой
+    if (DOM.mainContent) DOM.mainContent.classList.add('main-content-hidden');
+    if (DOM.card) { DOM.card.style.pointerEvents = 'none'; DOM.card.style.opacity = '1'; }
+    createParticles(); createTimelineLabels(); preventImageDrag();
     setTimeout(typeEffect, 1200);
-    
-    // Инициализируем музыкальный плеер
-    loadTrack(0);
-    DOM.audio.volume = 0.3;
-    DOM.volumeSlider.value = 30;
-    setVolume();
-    
-    // Попытка автовоспроизведения
-    DOM.audio.play().catch(e => console.log('Автовоспроизведение заблокировано, нажмите на страницу'));
-    
-    // Добавляем CSS для плавного появления текста
+    loadTrack(0); DOM.audio.volume = 0.3; DOM.volumeSlider.value = 30; setVolume();
+    DOM.audio.play().catch(e => console.log('Autoplay blocked'));
     const style = document.createElement('style');
     style.textContent = `.card-text, .character-name { transition: opacity 0.15s ease; } .card-image img { transition: opacity 0.2s ease; }`;
     document.head.appendChild(style);
 }
 
-// ==========================================================================
-// 15. ОБРАБОТЧИКИ СОБЫТИЙ
-// ==========================================================================
+function updateResponsiveConfig() {
+    const w = window.innerWidth;
+    let maxDrag = 150, thresh = 120, rot = 15, appear = 20, full = 100;
+    if (w <= 320) { maxDrag = 45; thresh = 35; rot = 10; appear = 8; full = 30; }
+    else if (w <= 360) { maxDrag = 55; thresh = 42; rot = 12; appear = 10; full = 38; }
+    else if (w <= 380) { maxDrag = 65; thresh = 50; rot = 13; appear = 12; full = 45; }
+    else if (w <= 420) { maxDrag = 72; thresh = 58; rot = 21; appear = 13; full = 50; }
+    else if (w <= 480) { maxDrag = 80; thresh = 65; rot = 14; appear = 15; full = 60; }
 
-// Кнопка старта игры
-if (DOM.playBtn) {
-    DOM.playBtn.addEventListener('click', () => {
-        preloadAllImages();
-        
-        // Анимация исчезновения меню
-        DOM.startScreen.style.transition = 'opacity 0.8s ease, visibility 0.8s ease';
-        DOM.startScreen.style.opacity = '0';
-        
-        setTimeout(() => {
-            DOM.startScreen.style.display = 'none';
-            DOM.startScreen.style.visibility = 'hidden';
-            
-            // Показываем дисклеймер с плавным появлением
-            DOM.disclaimerScreen.style.display = 'flex';
-            DOM.disclaimerScreen.style.visibility = 'visible';
-            DOM.disclaimerScreen.style.opacity = '0';
-            
-            setTimeout(() => {
-                DOM.disclaimerScreen.style.transition = 'opacity 0.8s ease';
-                DOM.disclaimerScreen.style.opacity = '1';
-            }, 50);
-        }, 800);
-    });
+    CONFIG.CARD.MAX_DRAG_DISTANCE = maxDrag; CONFIG.CARD.SWIPE_THRESHOLD = thresh;
+    CONFIG.CARD.ROTATION_FACTOR = rot; CONFIG.CARD.CHOICE_APPEAR_THRESHOLD = appear;
+    CONFIG.CARD.CHOICE_FULL_OPACITY_AT = full;
+    updateTimelinePosition();
 }
 
-// Клик по кнопке "Нажмите в любом месте"
-if (DOM.continueBtn) {
-    DOM.continueBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        hideDisclaimerAndStart();
-    });
-}
+// Глобальные слушатели (добавляются один раз)
+if (DOM.playBtn) DOM.playBtn.addEventListener('click', () => {
+    preloadAllImages();
+    DOM.startScreen.style.transition = 'opacity 0.8s ease, visibility 0.8s ease';
+    DOM.startScreen.style.opacity = '0';
+    setTimeout(() => {
+        DOM.startScreen.style.display = 'none'; DOM.startScreen.style.visibility = 'hidden';
+        DOM.disclaimerScreen.style.display = 'flex'; DOM.disclaimerScreen.style.visibility = 'visible'; DOM.disclaimerScreen.style.opacity = '0';
+        setTimeout(() => { DOM.disclaimerScreen.style.transition = 'opacity 0.8s ease'; DOM.disclaimerScreen.style.opacity = '1'; }, 50);
+    }, 800);
+});
 
-// Клик в любом месте экрана дисклеймера
-if (DOM.disclaimerScreen) {
-    DOM.disclaimerScreen.addEventListener('click', (e) => {
-        if (!DOM.continueBtn.contains(e.target)) {
-            hideDisclaimerAndStart();
-        }
-    });
-}
+if (DOM.continueBtn) DOM.continueBtn.addEventListener('click', (e) => { e.stopPropagation(); hideDisclaimerAndStart(); });
+if (DOM.disclaimerScreen) DOM.disclaimerScreen.addEventListener('click', (e) => { if (!DOM.continueBtn.contains(e.target)) hideDisclaimerAndStart(); });
 
-// Перетаскивание карточки (мышь и палец)
 if (DOM.card) {
     DOM.card.addEventListener('mousedown', handleDragStart);
     DOM.card.addEventListener('touchstart', handleDragStart, { passive: false });
@@ -1145,101 +597,204 @@ document.addEventListener('touchmove', handleDragMove, { passive: false });
 document.addEventListener('mouseup', handleDragEnd);
 document.addEventListener('touchend', handleDragEnd);
 
-// Музыкальный плеер
-if (DOM.playerIcon) {
-    DOM.playerIcon.addEventListener('click', () => {
-        if (DOM.playerPanel.style.display === 'none') {
-            DOM.playerPanel.style.display = 'block';
-        } else {
-            DOM.playerPanel.style.display = 'none';
-        }
-    });
-}
-
+if (DOM.playerIcon) DOM.playerIcon.addEventListener('click', () => { DOM.playerPanel.style.display = DOM.playerPanel.style.display === 'none' ? 'block' : 'none'; });
 if (DOM.prevTrackBtn) DOM.prevTrackBtn.addEventListener('click', prevTrack);
 if (DOM.nextTrackBtn) DOM.nextTrackBtn.addEventListener('click', nextTrack);
 if (DOM.volumeSlider) DOM.volumeSlider.addEventListener('input', setVolume);
+DOM.audio.addEventListener('ended', () => { DOM.audio.currentTime = 0; DOM.audio.play().catch(() => {}); });
 
-DOM.audio.addEventListener('ended', () => {
-    DOM.audio.currentTime = 0;
-    DOM.audio.play().catch(() => {});
-});
-
-// Модальные окна
 if (DOM.aboutBtn) DOM.aboutBtn.addEventListener('click', openAboutModal);
 if (DOM.closeAboutBtn) DOM.closeAboutBtn.addEventListener('click', closeAboutModal);
 if (DOM.rulesBtn) DOM.rulesBtn.addEventListener('click', openRulesModal);
 if (DOM.closeRulesBtn) DOM.closeRulesBtn.addEventListener('click', closeRulesModal);
+if (DOM.aboutModal) DOM.aboutModal.addEventListener('click', (e) => { if (e.target === DOM.aboutModal) closeAboutModal(); });
+if (DOM.rulesModal) DOM.rulesModal.addEventListener('click', (e) => { if (e.target === DOM.rulesModal) closeRulesModal(); });
 
-// Закрытие модалок по клику на фон
-if (DOM.aboutModal) {
-    DOM.aboutModal.addEventListener('click', (e) => {
-        if (e.target === DOM.aboutModal) closeAboutModal();
-    });
-}
-
-if (DOM.rulesModal) {
-    DOM.rulesModal.addEventListener('click', (e) => {
-        if (e.target === DOM.rulesModal) closeRulesModal();
-    });
-}
-
-// Делегирование клика по кнопке рестарта
-document.addEventListener('click', (e) => {
-    if (e.target.closest('.restart-btn')) {
-        e.preventDefault();
-        e.stopPropagation();
-        restartGame();
-    }
-});
-
-// Закрытие модалок по клавише ESC
+document.addEventListener('click', (e) => { if (e.target.closest('.restart-btn')) { e.preventDefault(); e.stopPropagation(); restartGame(); } });
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        if (DOM.aboutModal?.classList.contains('visible')) closeAboutModal();
-        if (DOM.rulesModal?.classList.contains('visible')) closeRulesModal();
-    }
+    if (e.key === 'Escape') { if (DOM.aboutModal?.classList.contains('visible')) closeAboutModal(); if (DOM.rulesModal?.classList.contains('visible')) closeRulesModal(); }
+    // Dev Mode
+    if (['f','F','а','А'].includes(e.key)) { gameState.stats = { epidemy: -50, reputation: -70, treasury: -30 }; gameState.historicalAccuracy = { correct: 51, total: 51 }; gameState.currentQuestionIndex = questions.length; if (DOM.card) DOM.card.style.display = 'none'; showFinalVerdict(); }
+    if (['b','B','и','И'].includes(e.key)) { showBadEnd('Тестовый bad end', 'Нажата клавиша B'); }
 });
 
-// Пересчитываем позицию маркера при повороте экрана или ресайзе
-window.addEventListener('resize', () => {
-    clearTimeout(window.resizeTimer);
-    window.resizeTimer = setTimeout(updateTimelinePosition, 100);
-});
-
-// ==========================================================================
-// 16. РЕЖИМ РАЗРАБОТЧИКА (DEV MODE)
-// ==========================================================================
-
-document.addEventListener('keydown', (e) => {
-    // Нажмите F (или А на русской раскладке) для мгновенного перехода к финалу
-    if (e.key === 'f' || e.key === 'F' || e.key === 'а' || e.key === 'А') {
-        console.log('⚡ Прыжок к финалу (dev mode)');
-        
-        // Устанавливаем тестовые статы (меняйте под нужную концовку)
-        gameState.stats.epidemy = -50;
-        gameState.stats.reputation = -70;
-        gameState.stats.treasury = -30;
-        gameState.historicalAccuracy = { correct: 34, total: 51 };
-        gameState.currentQuestionIndex = questions.length;
-        
-        if (DOM.card) DOM.card.style.display = 'none';
-        showFinalVerdict();
-    }
-    
-    // Клавиша B — мгновенный Bad End
-    if (e.key === 'b' || e.key === 'B' || e.key === 'и' || e.key === 'И') {
-        console.log('💀 Прыжок к Bad End (dev mode)');
-        showBadEnd('Тестовый bad end для отладки', 'Нажата клавиша B');
-    }
-});
-
-// ==========================================================================
-// 17. ЗАПУСК ИГРЫ
-// ==========================================================================
+// Консолидированный Resize/Orientation
+let resizeTimer, configTimer;
+const handleResize = () => { clearTimeout(resizeTimer); clearTimeout(configTimer); configTimer = setTimeout(updateResponsiveConfig, 150); };
+window.addEventListener('resize', handleResize);
+window.addEventListener('orientationchange', () => setTimeout(updateResponsiveConfig, 300));
 
 initializeGame();
-setTimeout(() => {
-    syncAllVolumes();
-    updateHeartbeat();
-}, 100);
+setTimeout(() => { setVolume(); updateHeartbeat(); }, 100);
+updateResponsiveConfig();
+// ==========================================================================
+// 19. АДАПТАЦИЯ ПЛАШЕК ВЫБОРА ДЛЯ МАЛЫХ ЭКРАНОВ (320×480)
+// ==========================================================================
+/**
+ * На малых экранах MAX_DRAG_DISTANCE сильно уменьшен (45-55px вместо 150px),
+ * поэтому стандартная формула opacity = moveX / 100 не работает —
+ * плашка никогда не становится полностью непрозрачной (максимум 0.45).
+ * 
+ * Решение:
+ * - Плашки появляются раньше (порог 10px вместо 20px)
+ * - Полная непрозрачность достигается при 70% от MAX_DRAG_DISTANCE
+ * - Затемнение идёт быстрее в начале движения
+ */
+
+// Добавляем новые параметры в CONFIG
+CONFIG.CARD.CHOICE_APPEAR_THRESHOLD = 20;   // Порог появления (px)
+CONFIG.CARD.CHOICE_FULL_OPACITY_AT = 100;   // При каком смещении opacity = 1
+
+// Расширяем updateCardConfig для пересчёта параметров плашек
+const _originalUpdateCardConfig = typeof updateCardConfig === 'function' 
+    ? updateCardConfig 
+    : null;
+
+function updateCardConfigExtended() {
+    // Вызываем оригинал (если он есть)
+    if (_originalUpdateCardConfig) _originalUpdateCardConfig();
+    
+    const width = window.innerWidth;
+    
+    if (width <= 320) {
+        // Экстремально узкие: плашка появляется почти сразу,
+        // полная непрозрачность при 30px (66% от max 45px)
+        CONFIG.CARD.CHOICE_APPEAR_THRESHOLD = 8;
+        CONFIG.CARD.CHOICE_FULL_OPACITY_AT = 30;
+    } else if (width <= 360) {
+        // Малые экраны: появление при 10px, полная при 38px (70% от 55px)
+        CONFIG.CARD.CHOICE_APPEAR_THRESHOLD = 10;
+        CONFIG.CARD.CHOICE_FULL_OPACITY_AT = 38;
+    } else if (width <= 480) {
+        // Средние мобильные
+        CONFIG.CARD.CHOICE_APPEAR_THRESHOLD = 15;
+        CONFIG.CARD.CHOICE_FULL_OPACITY_AT = 60;
+    } else {
+        // Десктоп — стандарт
+        CONFIG.CARD.CHOICE_APPEAR_THRESHOLD = 20;
+        CONFIG.CARD.CHOICE_FULL_OPACITY_AT = 100;
+    }
+}
+
+// Применяем расширенную версию
+updateCardConfigExtended();
+window.removeEventListener('resize', window.cardConfigResizeHandler);
+window.cardConfigResizeHandler = () => {
+    clearTimeout(window.cardConfigResizeTimer);
+    window.cardConfigResizeTimer = setTimeout(updateCardConfigExtended, 150);
+};
+window.addEventListener('resize', window.cardConfigResizeHandler);
+window.addEventListener('orientationchange', () => {
+    setTimeout(updateCardConfigExtended, 300);
+});
+
+// ==========================================================================
+// ПЕРЕХВАТЧИК: корректирует opacity плашек ПОСЛЕ оригинального обработчика
+// ==========================================================================
+/**
+ * Работает как "патч поверх" — не ломает оригинальный handleDragMove,
+ * а только пересчитывает прозрачность плашек для малых экранов.
+ */
+function patchChoiceLabelsOpacity(e) {
+    if (!gameState.isDragging) return;
+    
+    // На больших экранах ничего не меняем
+    if (window.innerWidth > 480) return;
+    
+    const currentX = e.touches ? e.touches[0].clientX : e.clientX;
+    const moveX = currentX - gameState.startX;
+    const absMove = Math.abs(moveX);
+    
+    const appearAt = CONFIG.CARD.CHOICE_APPEAR_THRESHOLD;
+    const fullAt = CONFIG.CARD.CHOICE_FULL_OPACITY_AT;
+    
+    // Нелинейная формула: быстрый рост в начале, плавное насыщение
+    // Используем ease-out кривую для приятного визуального эффекта
+    let opacity = 0;
+    if (absMove > appearAt) {
+        const progress = (absMove - appearAt) / (fullAt - appearAt);
+        // easeOutQuad: 1 - (1 - t)^2 — быстро растёт вначале
+        const eased = 1 - Math.pow(1 - Math.min(progress, 1), 2);
+        opacity = eased;
+    }
+    
+    // Применяем к нужной плашке в зависимости от направления
+    if (moveX > appearAt) {
+        if (DOM.rightLabel) DOM.rightLabel.style.opacity = opacity;
+        if (DOM.leftLabel) DOM.leftLabel.style.opacity = 0;
+    } else if (moveX < -appearAt) {
+        if (DOM.leftLabel) DOM.leftLabel.style.opacity = opacity;
+        if (DOM.rightLabel) DOM.rightLabel.style.opacity = 0;
+    } else {
+        if (DOM.leftLabel) DOM.leftLabel.style.opacity = 0;
+        if (DOM.rightLabel) DOM.rightLabel.style.opacity = 0;
+    }
+}
+
+// Подписываемся на те же события ПОСЛЕ оригинальных обработчиков.
+// Браузер вызывает их в порядке добавления, поэтому наш сработает
+// после handleDragMove и перезапишет opacity своими значениями.
+document.addEventListener('mousemove', patchChoiceLabelsOpacity);
+document.addEventListener('touchmove', patchChoiceLabelsOpacity, { passive: true });
+
+// ==========================================================================
+// 20. ПАТЧ АДАПТАЦИИ ДЛЯ 375px (iPhone 6/7/8, X/11/12/13)
+// Безопасно модифицирует CONFIG.CARD на лету. Не затрагивает основной код.
+// ==========================================================================
+(function() {
+    function apply375Adaptation() {
+        const w = window.innerWidth;
+        if (w > 360 && w <= 380) {
+            CONFIG.CARD.MAX_DRAG_DISTANCE = 65;
+            CONFIG.CARD.SWIPE_THRESHOLD   = 50;
+            CONFIG.CARD.ROTATION_FACTOR   = 13;
+            
+            CONFIG.CARD.CHOICE_APPEAR_THRESHOLD = 12;
+            CONFIG.CARD.CHOICE_FULL_OPACITY_AT  = 45;
+        }
+    }
+
+    apply375Adaptation();
+
+    let timer375;
+    const handler375 = () => {
+        clearTimeout(timer375);
+        timer375 = setTimeout(apply375Adaptation, 150);
+    };
+    window.addEventListener('resize', handler375);
+    window.addEventListener('orientationchange', () => setTimeout(apply375Adaptation, 300));
+})();
+
+// ==========================================================================
+// 21. ПАТЧ АДАПТАЦИИ ДЛЯ 414px (iPhone 8 Plus, XR, Pro Max)
+// Безопасно модифицирует CONFIG.CARD на лету. Не затрагивает основной код.
+// ==========================================================================
+(function() {
+    function apply414Adaptation() {
+        const w = window.innerWidth;
+        // Срабатывает ТОЛЬКО для диапазона 414px
+        if (w > 380 && w <= 420) {
+            // Физика карточки: интерполяция между 375px и 480px
+            CONFIG.CARD.MAX_DRAG_DISTANCE = 72;   // Безопасный предел свайпа
+            CONFIG.CARD.SWIPE_THRESHOLD   = 58;   // Порог фиксации выбора
+            CONFIG.CARD.ROTATION_FACTOR   = 21;   // Угол поворота (~5.5° макс)
+            
+            // Параметры плашек: синхронизированы с CSS
+            CONFIG.CARD.CHOICE_APPEAR_THRESHOLD = 13;
+            CONFIG.CARD.CHOICE_FULL_OPACITY_AT  = 50;
+        }
+    }
+
+    // Применяем сразу при загрузке
+    apply414Adaptation();
+
+    // Подписываемся на ресайз/поворот с debounce (не удаляя оригинальные слушатели)
+    let timer414;
+    const handler414 = () => {
+        clearTimeout(timer414);
+        timer414 = setTimeout(apply414Adaptation, 150);
+    };
+    window.addEventListener('resize', handler414);
+    window.addEventListener('orientationchange', () => setTimeout(apply414Adaptation, 300));
+})();
+
