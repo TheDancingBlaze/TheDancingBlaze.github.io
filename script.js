@@ -413,31 +413,50 @@ function handleDragEnd(e) {
 // ==========================================================================
 // 9. КОНЦОВКИ ИГРЫ
 // ==========================================================================
-function showBadEnd(reasonText, badChoiceText, epilogueText) {
-    stopHeartbeat();
-    const box = DOM.gameOverScreen.querySelector('.game-over-box');
-    const finalEpilogue = epilogueText || "Империя пала. История переписана навсегда...";
-    box.innerHTML = `<div class="corner-bl"></div><div class="corner-br"></div><div class="bad-end-header"><div class="bad-end-skull">⚰️</div><h2 class="bad-end-title">ИСТОРИЯ ПРЕРВАНА</h2><div class="bad-end-skull">⚰️</div></div><div class="bad-end-divider"><span class="divider-line"></span><span class="divider-icon">✧</span><span class="divider-line"></span></div><div class="bad-end-choice"><span class="choice-label-text">Роковой выбор:</span><span class="choice-value">«${badChoiceText}»</span></div><div class="bad-end-consequence"><span class="consequence-icon">☠</span><p class="consequence-text">${reasonText}</p></div><div class="bad-end-divider"><span class="divider-line short"></span><span class="divider-icon">✦</span><span class="divider-line short"></span></div><p class="bad-end-epilogue">${finalEpilogue}</p><button class="restart-btn bad-end-restart" id="restart-btn"><span class="restart-sword">🗡️</span><span class="restart-text">НАЧАТЬ ЗАНОВО</span><span class="restart-sword">⚔️</span></button>`;
-    DOM.gameOverScreen.style.display = 'flex';
-}
-
+// ==========================================================================
+// 9. КОНЦОВКИ ИГРЫ (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+// ==========================================================================
 function analyzeStats() {
-    const stats = [{ value: gameState.stats.epidemy, icon: '🧪', label: 'Эпидемия' }, { value: gameState.stats.reputation, icon: '👑', label: 'Репутация' }, { value: gameState.stats.treasury, icon: '🪙', label: 'Казна' }];
-    const dominant = stats.reduce((p, c) => Math.abs(c.value) > Math.abs(p.value) ? c : p);
-    return { dominantStat: dominant, isPositive: dominant.value > 0, intensity: Math.abs(dominant.value), absValue: Math.abs(dominant.value) };
+    // 1. Учитываем правильную направленность каждого параметра
+    // Эпидемия: чем меньше значение, тем лучше. Инвертируем знак.
+    const epidemyScore = -gameState.stats.epidemy;
+    // Репутация и Казна: чем выше, тем лучше.
+    const repScore = gameState.stats.reputation;
+    const treasuryScore = gameState.stats.treasury;
+
+    // 2. Суммарный индекс успеха (баланс всех трёх сфер)
+    const totalScore = epidemyScore + repScore + treasuryScore;
+    
+    // 3. Отклонение от стартовой точки (30+60+20 = 110)
+    // balance > 0  -> игрок улучшил ситуацию относительно старта
+    // balance < 0  -> ухудшил
+    const balance = totalScore - 110;
+
+    return {
+        score: totalScore,
+        balance: balance,
+        isPositive: balance > 0,
+        intensity: Math.abs(balance), // Сила отклонения от нормы
+        stats: { ...gameState.stats }
+    };
 }
 
 function getEndingText(analysis, accuracyPercent = 0) {
-    const { isPositive, intensity } = analysis;
+    const { isPositive, intensity } = analysis; // intensity теперь = Math.abs(balance)
+
+    // Приоритет исторической точности (оставляем как было)
     if (accuracyPercent === 100) return "Вы стали тенью истории. Ни один хронист не упомянет вашего имени — и в этом ваше высшее достижение. Холера отступила к зиме, как и было предначертано: Николай I сохранил трон, Эссен — рассудок, а Мудров сгорел на своём посту, но не предал клятву. На Сенной не пролилась кровь, которой не должно было быть. Локомотив времени идёт точно по расписанию. Вы победили, исчезнув.";
     if (accuracyPercent <= 12) return "Вы выжили. Но тот Петербург, который знала история — с храбростью Эссена, с речью Императора на Сенной, с докторами, умиравшими на постах — тот Петербург вы убили. Вы заменили хронику мужества хроникой полумер. Смертей было больше. Бунты — жесточе. Вы не пустили поезд под откос — вы свернули на ржавый запасной путь, и он едва дотащился до станции, скрипя колёсами по костям тех, кто в настоящей истории остался жив.";
     if (accuracyPercent === 98) return "Почти безупречно. Но где-то — одна уступка страху, один компромисс — оставил шрам на ткани времени. Историки будущего найдут странную аномалию в архивах 1831 года: лишние три сотни имён в метрических книгах, или купца, разорившегося не вовремя, или врача, сломленного там, где должен был выстоять. Ткань истории цела. Но по ней прошла рябь, и кто-то в будущем это заметит.";
-    if (isPositive && intensity >= 70) return "Ваша мудрость и хладнокровие спасли Империю от полного коллапса. История запомнит эти дни как время великого противостояния хаосу. ";
-    if (isPositive && intensity >= 40) return "Вы удержали ситуацию на плаву. Цена была высока, но ткань истории сохранена. Санкт-Петербург выстоял. ";
-    if (isPositive) return "Неплохо... но многие решения оказались половинчатыми. Империя выжила, но шрамы от тех событий будут заживать ещё долго. ";
-    if (intensity >= 70) return "Катастрофа. Ваши решения спровоцировали цепную реакцию: бунты, экономический крах и падение доверия к власти. Локомотив времени сошёл с рельсов. ";
-    if (intensity >= 40) return "Провал. Паника и неверные шаги погрузили город в анархию. Вы не смогли удержать баланс, и история переписана кровавыми чернилами. ";
-    return "Досадная ошибка. Вы пытались действовать, но не хватило решимости или знаний. Эпидемия оставила после себя слишком глубокие раны. ";
+
+    // Баланс ресурсов (пороги адаптированы под новый композитный балл)
+    if (isPositive && intensity >= 35) return "Ваша мудрость и хладнокровие спасли Империю от полного коллапса. История запомнит эти дни как время великого противостояния хаосу.";
+    if (isPositive && intensity >= 15) return "Вы удержали ситуацию на плаву. Цена была высока, но ткань истории сохранена. Санкт-Петербург выстоял.";
+    if (isPositive) return "Неплохо... но многие решения оказались половинчатыми. Империя выжила, но шрамы от тех событий будут заживать ещё долго.";
+    
+    if (intensity >= 45) return "Катастрофа. Ваши решения спровоцировали цепную реакцию: бунты, экономический крах и падение доверия к власти. Локомотив времени сошёл с рельсов.";
+    if (intensity >= 25) return "Провал. Паника и неверные шаги погрузили город в анархию. Вы не смогли удержать баланс, и история переписана кровавыми чернилами.";
+    return "Досадная ошибка. Вы пытались действовать, но не хватило решимости или знаний. Эпидемия оставила после себя слишком глубокие раны.";
 }
 
 function showFinalVerdict() {
