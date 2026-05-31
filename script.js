@@ -268,15 +268,29 @@ function updateCardContent() {
     }
     if (DOM.cardDateBelow) DOM.cardDateBelow.innerHTML = displayDate;
 
-    const leftText = data.left?.trim() || '';
+        const leftText = data.left?.trim() || '';
     const rightText = data.right?.trim() || '';
+
+    // ✅ ГАРАНТИРОВАННО СКРЫВАЕМ ПЛАШКИ ПЕРЕД ОТРИСОВКОЙ НОВОЙ КАРТОЧКИ
     if (DOM.leftLabel) {
-        if (leftText) { DOM.leftLabel.innerText = leftText; DOM.leftLabel.style.display = 'block'; autoFitChoice(DOM.leftLabel); }
-        else { DOM.leftLabel.style.display = 'none'; }
+        DOM.leftLabel.style.opacity = '0';
+        if (leftText) {
+            DOM.leftLabel.innerText = leftText;
+            DOM.leftLabel.style.display = 'block';
+            autoFitChoice(DOM.leftLabel);
+        } else {
+            DOM.leftLabel.style.display = 'none';
+        }
     }
     if (DOM.rightLabel) {
-        if (rightText) { DOM.rightLabel.innerText = rightText; DOM.rightLabel.style.display = 'block'; autoFitChoice(DOM.rightLabel); }
-        else { DOM.rightLabel.style.display = 'none'; }
+        DOM.rightLabel.style.opacity = '0';
+        if (rightText) {
+            DOM.rightLabel.innerText = rightText;
+            DOM.rightLabel.style.display = 'block';
+            autoFitChoice(DOM.rightLabel);
+        } else {
+            DOM.rightLabel.style.display = 'none';
+        }
     }
 
     // Асинхронная предзагрузка
@@ -494,13 +508,32 @@ function setVolume() {
 }
 
 function startHeartbeat() {
-    if (DOM.heartbeatSound && !gameState.isHeartbeatPlaying) {
-        DOM.heartbeatSound.volume = DOM.audio.volume; DOM.heartbeatSound.currentTime = 0; DOM.heartbeatSound.play().catch(e => console.log('Heartbeat err:', e));
-        gameState.isHeartbeatPlaying = true;
-    }
+    if (!DOM.heartbeatSound || gameState.isHeartbeatPlaying) return;
+    
+    // 1. Явно возобновляем музыку (борьба с автопаузой браузеров)
+    if (DOM.audio.paused) DOM.audio.play().catch(() => {});
+
+    // 2. Сохраняем текущую громкость и делаем ducking (приглушаем музыку на ~65%)
+    gameState._musicVolBackup = gameState._musicVolBackup ?? DOM.audio.volume;
+    DOM.audio.volume = Math.max(0.05, DOM.audio.volume * 0.35);
+
+    // 3. Запускаем сердцебиение с оригинальной громкостью
+    DOM.heartbeatSound.volume = gameState._musicVolBackup;
+    DOM.heartbeatSound.currentTime = 0;
+    DOM.heartbeatSound.play().catch(e => console.log('Heartbeat err:', e));
+    
+    gameState.isHeartbeatPlaying = true;
 }
+
 function stopHeartbeat() {
-    if (DOM.heartbeatSound && gameState.isHeartbeatPlaying) { DOM.heartbeatSound.pause(); DOM.heartbeatSound.currentTime = 0; gameState.isHeartbeatPlaying = false; }
+    if (!DOM.heartbeatSound || !gameState.isHeartbeatPlaying) return;
+    
+    DOM.heartbeatSound.pause();
+    DOM.heartbeatSound.currentTime = 0;
+    
+    // 4. Возвращаем громкость музыки к исходному значению
+    DOM.audio.volume = gameState._musicVolBackup || DOM.audio.volume;
+    gameState.isHeartbeatPlaying = false;
 }
 function updateHeartbeat() {
     if (!DOM.heartbeatSound) return;
