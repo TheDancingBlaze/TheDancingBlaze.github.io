@@ -411,87 +411,180 @@ function handleDragEnd(e) {
 }
 
 // ==========================================================================
-// 9. КОНЦОВКИ ИГРЫ
-// ==========================================================================
-// ==========================================================================
-// 9. КОНЦОВКИ ИГРЫ (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+// 9. КОНЦОВКИ ИГРЫ (МАТРИЦА: ТОЧНОСТЬ × БАЛАНС)
 // ==========================================================================
 function analyzeStats() {
-    // 1. Учитываем правильную направленность каждого параметра
-    // Эпидемия: чем меньше значение, тем лучше. Инвертируем знак.
+    // Инвертируем эпидемию (меньше = лучше) и считаем композитный баланс
     const epidemyScore = -gameState.stats.epidemy;
-    // Репутация и Казна: чем выше, тем лучше.
     const repScore = gameState.stats.reputation;
     const treasuryScore = gameState.stats.treasury;
-
-    // 2. Суммарный индекс успеха (баланс всех трёх сфер)
-    const totalScore = epidemyScore + repScore + treasuryScore;
     
-    // 3. Отклонение от стартовой точки (30+60+20 = 110)
-    // balance > 0  -> игрок улучшил ситуацию относительно старта
-    // balance < 0  -> ухудшил
-    const balance = totalScore - 110;
-
+    const totalScore = epidemyScore + repScore + treasuryScore;
+    const balance = totalScore - 110; // 110 = стартовая сумма (30+60+20)
+    
     return {
         score: totalScore,
         balance: balance,
         isPositive: balance > 0,
-        intensity: Math.abs(balance), // Сила отклонения от нормы
+        intensity: Math.abs(balance),
         stats: { ...gameState.stats }
     };
 }
 
 function getEndingText(analysis, accuracyPercent = 0) {
-    const { isPositive, intensity } = analysis; // intensity теперь = Math.abs(balance)
-
-    // Приоритет исторической точности (оставляем как было)
-    if (accuracyPercent === 100) return "Вы стали тенью истории. Ни один хронист не упомянет вашего имени — и в этом ваше высшее достижение. Холера отступила к зиме, как и было предначертано: Николай I сохранил трон, Эссен — рассудок, а Мудров сгорел на своём посту, но не предал клятву. На Сенной не пролилась кровь, которой не должно было быть. Локомотив времени идёт точно по расписанию. Вы победили, исчезнув.";
-    if (accuracyPercent <= 12) return "Вы выжили. Но тот Петербург, который знала история — с храбростью Эссена, с речью Императора на Сенной, с докторами, умиравшими на постах — тот Петербург вы убили. Вы заменили хронику мужества хроникой полумер. Смертей было больше. Бунты — жесточе. Вы не пустили поезд под откос — вы свернули на ржавый запасной путь, и он едва дотащился до станции, скрипя колёсами по костям тех, кто в настоящей истории остался жив.";
-    if (accuracyPercent === 98) return "Почти безупречно. Но где-то — одна уступка страху, один компромисс — оставил шрам на ткани времени. Историки будущего найдут странную аномалию в архивах 1831 года: лишние три сотни имён в метрических книгах, или купца, разорившегося не вовремя, или врача, сломленного там, где должен был выстоять. Ткань истории цела. Но по ней прошла рябь, и кто-то в будущем это заметит.";
-
-    // Баланс ресурсов (пороги адаптированы под новый композитный балл)
-    if (isPositive && intensity >= 35) return "Ваша мудрость и хладнокровие спасли Империю от полного коллапса. История запомнит эти дни как время великого противостояния хаосу.";
-    if (isPositive && intensity >= 15) return "Вы удержали ситуацию на плаву. Цена была высока, но ткань истории сохранена. Санкт-Петербург выстоял.";
-    if (isPositive) return "Неплохо... но многие решения оказались половинчатыми. Империя выжила, но шрамы от тех событий будут заживать ещё долго.";
+    const { isPositive, intensity } = analysis;
     
-    if (intensity >= 45) return "Катастрофа. Ваши решения спровоцировали цепную реакцию: бунты, экономический крах и падение доверия к власти. Локомотив времени сошёл с рельсов.";
-    if (intensity >= 25) return "Провал. Паника и неверные шаги погрузили город в анархию. Вы не смогли удержать баланс, и история переписана кровавыми чернилами.";
-    return "Досадная ошибка. Вы пытались действовать, но не хватило решимости или знаний. Эпидемия оставила после себя слишком глубокие раны.";
+    // ─────────────────────────────────────────────────────────────
+    // ТИР 1: АБСОЛЮТНАЯ ТОЧНОСТЬ (уникальные концовки)
+    // ─────────────────────────────────────────────────────────────
+    if (accuracyPercent === 100) {
+        return "Вы стали тенью истории. Ни один хронист не упомянет вашего имени — и в этом ваше высшее достижение. Холера отступила к зиме, как и было предначертано: Николай I сохранил трон, Эссен — рассудок, а Мудров сгорел на своём посту, но не предал клятву. На Сенной не пролилась кровь, которой не должно было быть. Локомотив времени идёт точно по расписанию. Вы победили, исчезнув.";
+    }
+    
+    if (accuracyPercent >= 90) {
+        return "Почти безупречно. Но где-то — одна уступка страху, один компромисс — оставил шрам на ткани времени. Историки будущего найдут странную аномалию в архивах 1831 года: лишние три сотни имён в метрических книгах, или купца, разорившегося не вовремя, или врача, сломленного там, где должен был выстоять. Ткань истории цела. Но по ней прошла рябь, и кто-то в будущем это заметит.";
+    }
+    
+    if (accuracyPercent <= 12) {
+        return "Вы выжили. Но тот Петербург, который знала история — с храбростью Эссена, с речью Императора на Сенной, с докторами, умиравшими на постах — тот Петербург вы убили. Вы заменили хронику мужества хроникой полумер. Смертей было больше. Бунты — жесточе. Вы не пустили поезд под откос — вы свернули на ржавый запасной путь, и он едва дотащился до станции, скрипя колёсами по костям тех, кто в настоящей истории остался жив.";
+    }
+    
+    // ─────────────────────────────────────────────────────────────
+    // ТИР 2: ВЫСОКАЯ ТОЧНОСТЬ (75-89%) — игрок знает историю
+    // ─────────────────────────────────────────────────────────────
+    if (accuracyPercent >= 75) {
+        if (isPositive && intensity >= 30) {
+            return "Вы знали, что делаете — и делали это с хирургической точностью. История пошла по учебнику, но вы умудрились даже улучшить некоторые страницы. Империя не просто выстояла — она стала крепче. Хронисты будущего назовут эти дни 'чудом компетентности'.";
+        }
+        if (isPositive) {
+            return "Вы следовали канону, и канон не подвёл. Город выстоял, власть устояла, жертвы — в пределах исторической нормы. Вы не герой — вы идеальный исполнителя воли времени. Скучно? Возможно. Но тысячи жизней спасены именно вашей дисциплиной.";
+        }
+        if (intensity >= 40) {
+            return "Вы знали каждый поворот истории — и всё равно не смогли удержать баланс. Знание не равно мудрости. Вы следовали букве хроники, но упустили её дух. Город выжил, но цена оказалась выше, чем в любом учебнике. Историки запишут: 'Действовал правильно, но слишком поздно'.";
+        }
+        return "Вы шли по лезвию, зная каждый шаг — и всё равно порезались. История повторилась, но с лишними шрамами. Вы доказали, что даже безупречная память не гарантирует безупречного результата.";
+    }
+    
+    // ─────────────────────────────────────────────────────────────
+    // ТИР 3: СРЕДНЯЯ ТОЧНОСТЬ (40-74%) — импровизация
+    // ─────────────────────────────────────────────────────────────
+    if (accuracyPercent >= 40) {
+        if (isPositive && intensity >= 30) {
+            return "Вы не знали истории — но у вас хватило инстинкта и удачи, чтобы выжить и защитить город. Хроника 1831 года теперь отличается от оригинала: другие имена героев, другие даты бунтов, другие жертвы. Но Петербург стоит. Империя целая. Может, ваша версия даже лучше? Учёные из 2401 года ещё спорят.";
+        }
+        if (isPositive) {
+            return "Вы действовали наугад, но интуиция вас не подвела. Город выстоял — пусть и не так элегантно, как в оригинальной хронике. Где-то вы перестраховались, где-то рискнули зря. Результат приемлемый. История не будет вас помнить — но и не проклянёт.";
+        }
+        if (intensity >= 35) {
+            return "Вы пытались импровизировать, но импровизация в кризис — это русская рулетка с пятью патронами. Город пострадал сильнее, чем должен был. Жертв больше. Бунты кровавее. Вы не разрушили историю — но оставили на ней уродливые царапины, которые не зарастут.";
+        }
+        return "Половина ваших решений была верной. Другая половина — катастрофой. Итог предсказуемо посредственный: город выжил, но ослаблен. Вы — живое доказательство того, что полумеры в эпидемию хуже, чем ошибки.";
+    }
+    
+    // ─────────────────────────────────────────────────────────────
+    // ТИР 4: НИЗКАЯ ТОЧНОСТЬ (13-39%) — слепое блуждание
+    // ─────────────────────────────────────────────────────────────
+    if (isPositive && intensity >= 25) {
+        return "Чудо. Иначе не назовёшь. Вы не знали истории, не понимали медицины, путали факты с мифами — и всё равно умудрились удержать город от полного коллапса. Случайность? Везение? Или сама ткань времени амортизирует даже самых неумелых операторов? Учёные из 2401 года чешут затылки.";
+    }
+    if (isPositive) {
+        return "Вы выжили. Город выжил. Но это было некрасиво, нелогично и местами просто глупо. Вы не спасали Империю — вы барахтались, и вам повезло не утонуть. История запишет вас как сноску: 'Неизвестный чиновник, чьи странные решения inexplicably сработали'.";
+    }
+    if (intensity >= 40) {
+        return "Вы не знали, что делаете — и это видно. Каждое решение било по своим, каждая инициатива усугубляла хаос. Город выстоял только благодаря инерции и жертвам тех, кто действовал правильно вопреки вам. Вы — ходячее предупреждение: не лезь в историю, если не читал учебник.";
+    }
+    return "Вы действовали вслепую — и результат соответствующий. Не катастрофа, но и не победа. Город зализывает раны, которые вы нанесли по незнанию. Следующий раз читайте инструкцию.";
 }
 
 function showFinalVerdict() {
     stopHeartbeat();
     const analysis = analyzeStats();
     const { isPositive, intensity } = analysis;
-    let accuracyPercent = gameState.historicalAccuracy.total > 0 ? Math.round((gameState.historicalAccuracy.correct / gameState.historicalAccuracy.total) * 100) : 0;
-    let accuracyText = "КАТАСТРОФИЧЕСКИ ", accuracyColor = "#b85c1a ";
-    if (accuracyPercent >= 80) { accuracyText = "БЛЕСТЯЩЕ "; accuracyColor = "#c4a747 "; }
-    else if (accuracyPercent >= 60) { accuracyText = "ХОРОШО "; accuracyColor = "#7cb342 "; }
-    else if (accuracyPercent >= 40) { accuracyText = "УДОВЛЕТВОРИТЕЛЬНО "; accuracyColor = "#e8b84a "; }
-    else if (accuracyPercent >= 20) { accuracyText = "ПЛОХО "; accuracyColor = "#b85c1a "; }
-
-    const endingText = getEndingText(analysis, accuracyPercent);
-    let endingTitle = "", endingColor = "";
-    if (accuracyPercent === 100) { endingTitle = "ТКАНЬ ИСТОРИИ СОХРАНЕНА "; endingColor = "#f5e6c0 "; }
-    else if (accuracyPercent <= 12) { endingTitle = "ВЫ ИЗГНАНЫ ИЗ ХРОНИК "; endingColor = "#6b2f0f "; }
-    else if (accuracyPercent === 98) { endingTitle = "ПОЧТИ. НО НЕ ВПОЛНЕ. "; endingColor = "#b8a992 "; }
-    else if (isPositive) {
-        if (intensity >= 70) { endingTitle = "ВЕЛИКАЯ ПОБЕДА "; endingColor = "#c4a747 "; }
-        else if (intensity >= 40) { endingTitle = "ДОСТОЙНЫЙ РЕЗУЛЬТАТ "; endingColor = "#7cb342 "; }
-        else { endingTitle = "НЕПЛОХО... НО МАЛО "; endingColor = "#8a7a60 "; }
+    
+    let accuracyPercent = gameState.historicalAccuracy.total > 0 
+        ? Math.round((gameState.historicalAccuracy.correct / gameState.historicalAccuracy.total) * 100) 
+        : 0;
+    
+    // ── Определение категории точности ──
+    let accuracyTier, accuracyText, accuracyColor;
+    if (accuracyPercent === 100)       { accuracyTier = 'perfect';  accuracyText = 'БЕЗУПРЕЧНО';        accuracyColor = '#f5e6c0'; }
+    else if (accuracyPercent >= 90)    { accuracyTier = 'excellent';accuracyText = 'ПРЕВОСХОДНО';       accuracyColor = '#c4a747'; }
+    else if (accuracyPercent >= 75)    { accuracyTier = 'high';     accuracyText = 'БЛЕСТЯЩЕ';          accuracyColor = '#c4a747'; }
+    else if (accuracyPercent >= 60)    { accuracyTier = 'good';     accuracyText = 'ХОРОШО';            accuracyColor = '#7cb342'; }
+    else if (accuracyPercent >= 40)    { accuracyTier = 'medium';   accuracyText = 'УДОВЛЕТВОРИТЕЛЬНО'; accuracyColor = '#e8b84a'; }
+    else if (accuracyPercent >= 20)    { accuracyTier = 'low';      accuracyText = 'ПЛОХО';             accuracyColor = '#b85c1a'; }
+    else                               { accuracyTier = 'abysmal';  accuracyText = 'КАТАСТРОФИЧЕСКИ';   accuracyColor = '#6b2f0f'; }
+    
+    // ── Матрица: Точность × Баланс → Заголовок концовки ──
+    let endingTitle, endingColor;
+    
+    if (accuracyPercent === 100) {
+        endingTitle = 'ТКАНЬ ИСТОРИИ СОХРАНЕНА'; endingColor = '#f5e6c0';
+    } else if (accuracyPercent <= 12) {
+        endingTitle = 'ВЫ ИЗГНАНЫ ИЗ ХРОНИК'; endingColor = '#6b2f0f';
+    } else if (accuracyTier === 'excellent') {
+        endingTitle = 'ПОЧТИ. НО НЕ ВПОЛНЕ.'; endingColor = '#b8a992';
+    } else if (accuracyTier === 'high') {
+        if (isPositive) { endingTitle = 'ХРАНИТЕЛЬ ВРЕМЕНИ'; endingColor = '#c4a747'; }
+        else            { endingTitle = 'МУЧЕНИК ХРОНОЛОГИИ'; endingColor = '#b85c1a'; }
+    } else if (accuracyTier === 'good' || accuracyTier === 'medium') {
+        if (isPositive && intensity >= 30)      { endingTitle = 'ИНТУИЦИЯ НЕ ПОДВЕЛА'; endingColor = '#7cb342'; }
+        else if (isPositive)                    { endingTitle = 'ДОСТОЙНЫЙ РЕЗУЛЬТАТ'; endingColor = '#7cb342'; }
+        else if (intensity >= 35)               { endingTitle = 'ЦЕНА НЕВЕДЕНИЯ'; endingColor = '#b85c1a'; }
+        else                                    { endingTitle = 'ПОСРЕДСТВЕННО'; endingColor = '#8a7a60'; }
     } else {
-        if (intensity >= 70) { endingTitle = "КАТАСТРОФА "; endingColor = "#b85c1a "; }
-        else if (intensity >= 40) { endingTitle = "ПРОВАЛ "; endingColor = "#b85c1a "; }
-        else { endingTitle = "ДОСАДНАЯ ОШИБКА "; endingColor = "#8a7a60 "; }
+        // Низкая точность
+        if (isPositive && intensity >= 25)      { endingTitle = 'ЧУДО НА ВОЛОСКЕ'; endingColor = '#e8b84a'; }
+        else if (isPositive)                    { endingTitle = 'ПОВЕЗЛО'; endingColor = '#8a7a60'; }
+        else if (intensity >= 40)               { endingTitle = 'КАТАСТРОФА'; endingColor = '#b85c1a'; }
+        else                                    { endingTitle = 'ДОСАДНАЯ ОШИБКА'; endingColor = '#8a7a60'; }
     }
-
+    
+    const endingText = getEndingText(analysis, accuracyPercent);
+    
     const box = DOM.gameOverScreen.querySelector('.game-over-box');
     const getStatClass = (val, type) => {
         if (type === 'epidemy') return val < 30 ? 'stat-good' : val > 50 ? 'stat-bad' : 'stat-mid';
         if (type === 'reputation') return val > 80 ? 'stat-good' : val < 50 ? 'stat-bad' : 'stat-mid';
         return val > 0 ? 'stat-good' : val < -50 ? 'stat-bad' : 'stat-mid';
     };
-    box.innerHTML = `<div class="corner-bl"></div><div class="corner-br"></div><h2 class="final-title" style="color: ${endingColor};">${endingTitle}</h2><div class="final-epilogue"><p>${endingText}</p></div><div class="final-divider"><span class="divider-line"></span><span class="divider-icon">⚜</span><span class="divider-line"></span></div><div class="accuracy-block"><div class="accuracy-title">⚜ ИСТОРИЧЕСКАЯ ДОСТОВЕРНОСТЬ ⚜</div><div class="accuracy-percent" style="color: ${accuracyColor};">${accuracyPercent}%</div><div class="accuracy-desc">(${gameState.historicalAccuracy.correct} из ${gameState.historicalAccuracy.total} решений)</div></div><div class="final-stats-mini"><div class="final-stat-mini"><span class="stat-icon">🧪</span><span class="stat-value-mini ${getStatClass(gameState.stats.epidemy, 'epidemy')}">${gameState.stats.epidemy}</span><span class="stat-label-mini">Эпидемия</span></div><div class="final-stat-mini"><span class="stat-icon">👑</span><span class="stat-value-mini ${getStatClass(gameState.stats.reputation, 'reputation')}">${gameState.stats.reputation}</span><span class="stat-label-mini">Репутация</span></div><div class="final-stat-mini"><span class="stat-icon">🪙</span><span class="stat-value-mini ${getStatClass(gameState.stats.treasury, 'treasury')}">${gameState.stats.treasury}</span><span class="stat-label-mini">Казна</span></div></div><button class="restart-btn final-restart" id="restart-btn"><span class="restart-text">ПРОДОЛЖИТЬ ХРОНИКИ</span></button>`;
+    
+    box.innerHTML = `
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        <h2 class="final-title" style="color: ${endingColor};">${endingTitle}</h2>
+        <div class="final-epilogue"><p>${endingText}</p></div>
+        <div class="final-divider">
+            <span class="divider-line"></span>
+            <span class="divider-icon">⚜</span>
+            <span class="divider-line"></span>
+        </div>
+        <div class="accuracy-block">
+            <div class="accuracy-title">⚜ ИСТОРИЧЕСКАЯ ДОСТОВЕРНОСТЬ ⚜</div>
+            <div class="accuracy-percent" style="color: ${accuracyColor};">${accuracyPercent}%</div>
+            <div class="accuracy-desc">(${gameState.historicalAccuracy.correct} из ${gameState.historicalAccuracy.total} решений)</div>
+        </div>
+        <div class="final-stats-mini">
+            <div class="final-stat-mini">
+                <span class="stat-icon">🧪</span>
+                <span class="stat-value-mini ${getStatClass(gameState.stats.epidemy, 'epidemy')}">${gameState.stats.epidemy}</span>
+                <span class="stat-label-mini">Эпидемия</span>
+            </div>
+            <div class="final-stat-mini">
+                <span class="stat-icon">👑</span>
+                <span class="stat-value-mini ${getStatClass(gameState.stats.reputation, 'reputation')}">${gameState.stats.reputation}</span>
+                <span class="stat-label-mini">Репутация</span>
+            </div>
+            <div class="final-stat-mini">
+                <span class="stat-icon">🪙</span>
+                <span class="stat-value-mini ${getStatClass(gameState.stats.treasury, 'treasury')}">${gameState.stats.treasury}</span>
+                <span class="stat-label-mini">Казна</span>
+            </div>
+        </div>
+        <button class="restart-btn final-restart" id="restart-btn">
+            <span class="restart-text">ПРОДОЛЖИТЬ ХРОНИКИ</span>
+        </button>
+    `;
     DOM.gameOverScreen.style.display = 'flex';
 }
 
