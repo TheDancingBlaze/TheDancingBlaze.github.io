@@ -316,7 +316,7 @@ function resetCard() {
 }
 
 // ==========================================================================
-// 8. ОБРАБОТКА ПЕРЕТАСКИВАНИЯ (rAF Throttling + объединение патчей)
+// 8. ОБРАБОТКА ПЕРЕТАСКИВАНИЯ (ВЕРСИЯ ИЗ SCRIPT1.JS)
 // ==========================================================================
 function handleDragStart(e) {
     if (e.target.tagName === 'IMG') return;
@@ -329,48 +329,70 @@ function handleDragStart(e) {
 function handleDragMove(e) {
     if (!gameState.isDragging) return;
     if (e.type === 'touchmove') e.preventDefault();
-    if (gameState.rafDragId) return; // Throttle to 60fps
+    
+    const currentX = getEventX(e);
+    let moveX = currentX - gameState.startX;
+    if (!DOM.card) return;
 
-    gameState.rafDragId = requestAnimationFrame(() => {
-        const currentX = getEventX(e);
-        let moveX = Math.max(-CONFIG.CARD.MAX_DRAG_DISTANCE, Math.min(CONFIG.CARD.MAX_DRAG_DISTANCE, currentX - gameState.startX));
-        const rotation = moveX / CONFIG.CARD.ROTATION_FACTOR;
-        DOM.card.style.transform = `translateX(${moveX}px) rotate(${rotation}deg)`;
+    // 🔧 РАСЧЁТ БЕЗОПАСНОЙ ЗОНЫ
+    const screenWidth = window.innerWidth;
+    const cardWidth = DOM.card.offsetWidth;
+    const cardHeight = DOM.card.offsetHeight;
+    const EDGE_PADDING = 22;
 
-        const absMove = Math.abs(moveX);
-        const appearAt = CONFIG.CARD.CHOICE_APPEAR_THRESHOLD;
-        const fullAt = CONFIG.CARD.CHOICE_FULL_OPACITY_AT;
-        let opacity = 0;
-        if (absMove > appearAt) {
-            const progress = (absMove - appearAt) / (fullAt - appearAt);
-            opacity = 1 - Math.pow(1 - Math.min(progress, 1), 2); // easeOutQuad
-        }
+    let testMove = Math.max(-CONFIG.CARD.MAX_DRAG_DISTANCE, Math.min(CONFIG.CARD.MAX_DRAG_DISTANCE, moveX));
+    const testRotation = testMove / CONFIG.CARD.ROTATION_FACTOR;
+    const rotationRad = Math.abs(testRotation) * Math.PI / 180;
+    const cornerOverflowX = Math.sin(rotationRad) * (cardHeight / 2);
+    const maxSafeMove = Math.max(40, (screenWidth - cardWidth) / 2 - cornerOverflowX - EDGE_PADDING);
 
-        if (moveX > appearAt) { DOM.rightLabel.style.opacity = opacity; DOM.leftLabel.style.opacity = 0; }
-        else if (moveX < -appearAt) { DOM.leftLabel.style.opacity = opacity; DOM.rightLabel.style.opacity = 0; }
-        else { DOM.leftLabel.style.opacity = 0; DOM.rightLabel.style.opacity = 0; }
+    if (moveX > maxSafeMove) moveX = maxSafeMove;
+    if (moveX < -maxSafeMove) moveX = -maxSafeMove;
 
-        gameState.rafDragId = null;
+    const rotation = moveX / CONFIG.CARD.ROTATION_FACTOR;
+
+    requestAnimationFrame(() => {
+        if (DOM.card) DOM.card.style.transform = `translateX(${moveX}px) rotate(${rotation}deg)`;
     });
+
+    // 🔧 Плашки выбора (адаптировано под узкие экраны)
+    const fullOpacityDistance = 60; // Порог полной непрозрачности
+    if (moveX > 20) {
+        const progress = Math.min(moveX / fullOpacityDistance, 1);
+        if (DOM.rightLabel) {
+            DOM.rightLabel.style.opacity = progress;
+            DOM.rightLabel.style.background = `rgba(0, 0, 0, ${0.5 + progress * 0.5})`;
+        }
+        if (DOM.leftLabel) DOM.leftLabel.style.opacity = 0;
+    } else if (moveX < -20) {
+        const progress = Math.min(Math.abs(moveX) / fullOpacityDistance, 1);
+        if (DOM.leftLabel) {
+            DOM.leftLabel.style.opacity = progress;
+            DOM.leftLabel.style.background = `rgba(0, 0, 0, ${0.5 + progress * 0.5})`;
+        }
+        if (DOM.rightLabel) DOM.rightLabel.style.opacity = 0;
+    }
 }
 
 function handleDragEnd(e) {
     if (!gameState.isDragging) return;
     gameState.isDragging = false;
+    
     const endX = getEventEndX(e);
     const finalMoveX = endX - gameState.startX;
 
     if (Math.abs(finalMoveX) > CONFIG.CARD.SWIPE_THRESHOLD && DOM.card) {
         const direction = finalMoveX > 0 ? 1 : -1;
         const currentData = questions[gameState.currentQuestionIndex];
-        let isBadEnd = false, badEndReason = " ", badChoiceText = " ", badEndEpilogue = " ";
+        let isBadEnd = false;
+        let badEndReason = "", badChoiceText = "", badEndEpilogue = "";
 
         if (direction === -1) {
             badChoiceText = currentData.left;
             if (currentData.badEndLeft) {
                 isBadEnd = true;
-                badEndReason = currentData.badEndLeftReason || "Ваше решение привело к катастрофическим последствиям для империи. ";
-                badEndEpilogue = currentData.badEndLeftEpilogue || " ";
+                badEndReason = currentData.badEndLeftReason || "Ваше решение привело к катастрофическим последствиям для империи.";
+                badEndEpilogue = currentData.badEndLeftEpilogue || "";
             }
             if (!isBadEnd) {
                 gameState.stats.epidemy += currentData.leftEff[0];
@@ -381,8 +403,8 @@ function handleDragEnd(e) {
             badChoiceText = currentData.right;
             if (currentData.badEndRight) {
                 isBadEnd = true;
-                badEndReason = currentData.badEndRightReason || "Ваше решение привело к катастрофическим последствиям для империи. ";
-                badEndEpilogue = currentData.badEndRightEpilogue || " ";
+                badEndReason = currentData.badEndRightReason || "Ваше решение привело к катастрофическим последствиям для империи.";
+                badEndEpilogue = currentData.badEndRightEpilogue || "";
             }
             if (!isBadEnd) {
                 gameState.stats.epidemy += currentData.rightEff[0];
@@ -391,24 +413,118 @@ function handleDragEnd(e) {
             }
         }
 
+        // Запись исторической точности
         if (!isBadEnd && currentData.correctChoice) {
             gameState.historicalAccuracy.total++;
-            if ((direction === -1 ? 'left' : 'right') === currentData.correctChoice) gameState.historicalAccuracy.correct++;
+            const playerChoice = direction === -1 ? 'left' : 'right';
+            if (playerChoice === currentData.correctChoice) {
+                gameState.historicalAccuracy.correct++;
+            }
         }
 
-        if (isBadEnd) { showBadEnd(badEndReason, badChoiceText, badEndEpilogue); return; }
+        // 🔴 КРИТИЧЕСКИ ВАЖНО: Вызов экрана плохой концовки
+        if (isBadEnd) {
+            showBadEnd(badEndReason, badChoiceText, badEndEpilogue);
+            return;
+        }
 
-        DOM.card.style.transition = 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)';
-        DOM.card.style.transform = `translateX(${direction * 600}px) rotate(${direction * 60}deg)`;
-        DOM.card.style.opacity = '0';
+        // Анимация улёта
+        const flyDistance = window.innerWidth;
+        DOM.card.style.transition = 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease';
+        requestAnimationFrame(() => {
+            DOM.card.style.transform = `translateX(${direction * flyDistance}px) rotate(${direction * 30}deg)`;
+            DOM.card.style.opacity = '0';
+        });
         setTimeout(resetCard, CONFIG.CARD.ANIMATION_DURATION);
+
     } else if (DOM.card) {
-        DOM.card.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-        DOM.card.style.transform = 'translateX(0px) rotate(0deg)';
+        // Плавный возврат
+        DOM.card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'; 
+        requestAnimationFrame(() => {
+            DOM.card.style.transform = 'translateX(0px) rotate(0deg)';
+        });
     }
-    DOM.leftLabel.style.opacity = 0;
-    DOM.rightLabel.style.opacity = 0;
+
+    if (DOM.leftLabel) DOM.leftLabel.style.opacity = 0;
+    if (DOM.rightLabel) DOM.rightLabel.style.opacity = 0;
 }
+
+// ==========================================================================
+// СБРОС КАРТОЧКИ (заменить текущий resetCard)
+// ==========================================================================
+function resetCard() {
+    gameState.currentQuestionIndex++;
+    updateCardContent();
+    if (gameState.currentQuestionIndex < questions.length && DOM.card) {
+        DOM.card.style.transition = 'none';
+        DOM.card.style.transform = 'translateX(0px) scale(0.85) translateY(20px)';
+        DOM.card.style.opacity = '0';
+        
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                DOM.card.style.transition = 'all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                DOM.card.style.opacity = '1';
+                DOM.card.style.transform = 'translateX(0px) scale(1) translateY(0px)';
+            });
+        });
+    }
+}
+
+// ==========================================================================
+// ЭКРАН ПЛОХОЙ КОНЦОВКИ (ОТСУТСТВОВАЛ В ТЕКУЩЕМ ФАЙЛЕ!)
+// ==========================================================================
+function showBadEnd(reasonText, badChoiceText, epilogueText) {
+    stopHeartbeat();
+    const gameOverBox = DOM.gameOverScreen.querySelector('.game-over-box');
+    const finalEpilogue = epilogueText || "Империя пала. История переписана навсегда...";
+    
+    gameOverBox.innerHTML = `
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+        <div class="bad-end-header">
+            <div class="bad-end-skull">⚰️</div>
+            <h2 class="bad-end-title">ИСТОРИЯ ПРЕРВАНА</h2>
+            <div class="bad-end-skull">⚰️</div>
+        </div>
+        <div class="bad-end-divider">
+            <span class="divider-line"></span>
+            <span class="divider-icon">✧</span>
+            <span class="divider-line"></span>
+        </div>
+        <div class="bad-end-choice">
+            <span class="choice-label-text">Роковой выбор:</span>
+            <span class="choice-value">«${badChoiceText}»</span>
+        </div>
+        <div class="bad-end-consequence">
+            <span class="consequence-icon">☠</span>
+            <p class="consequence-text">${reasonText}</p>
+        </div>
+        <div class="bad-end-divider">
+            <span class="divider-line short"></span>
+            <span class="divider-icon">✦</span>
+            <span class="divider-line short"></span>
+        </div>
+        <p class="bad-end-epilogue">${finalEpilogue}</p>
+        <button class="restart-btn bad-end-restart" id="restart-btn">
+            <span class="restart-sword">🗡️</span>
+            <span class="restart-text">НАЧАТЬ ЗАНОВО</span>
+            <span class="restart-sword">⚔️</span>
+        </button>
+    `;
+    DOM.gameOverScreen.style.display = 'flex';
+}
+
+// ==========================================================================
+// ПРИВЯЗКА СОБЫТИЙ (вставьте в конец инициализации, если ещё нет)
+// ==========================================================================
+if (DOM.card) {
+    DOM.card.addEventListener('mousedown', handleDragStart);
+    DOM.card.addEventListener('touchstart', handleDragStart, { passive: false });
+}
+document.addEventListener('mousemove', handleDragMove);
+document.addEventListener('touchmove', handleDragMove, { passive: false });
+document.addEventListener('mouseup', handleDragEnd);
+document.addEventListener('touchend', handleDragEnd);
 
 // ==========================================================================
 // 9. КОНЦОВКИ ИГРЫ (МАТРИЦА: ТОЧНОСТЬ × БАЛАНС)
